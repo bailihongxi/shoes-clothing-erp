@@ -82,12 +82,23 @@
       var el = ev.target && ev.target.closest ? ev.target.closest('[data-input]') : null;
       if (!el) return;
       var name = el.getAttribute('data-input');
+      // 输入法组合进行中：完全忽略，等 compositionend 统一处理，避免打断中文输入
+      if (app._isComposing(el, ev)) return;
       dispatch(name, el, ev);
-      // data-live="1"：实时预览，重渲染后恢复焦点与光标位置
-      if (el.getAttribute('data-live') === '1') relive(el);
+      // data-live="1"：实时预览（重渲染并恢复焦点/光标）；普通字段只更新内存，不重渲染
+      if (app._isLive(el)) relive(el);
     });
 
-    async function relive(el) {
+    // 输入法结束后补一次重渲染（中文/日文等组合输入必须靠它才能正确刷新预览）
+    document.addEventListener('compositionend', function (ev) {
+      var el = ev.target && ev.target.closest ? ev.target.closest('[data-input]') : null;
+      if (!el) return;
+      var name = el.getAttribute('data-input');
+      dispatch(name, el, ev);
+      if (app._isLive(el)) relive(el);
+    });
+
+    function relive(el) {
       var pos = null;
       try {
         pos = el.selectionStart;
@@ -95,9 +106,9 @@
         pos = null;
       }
       var key = el.getAttribute('data-name') || '';
-      await commit();
       render();
-      var selector = '[data-input="' + el.getAttribute('data-input') + '"][data-name="' + key + '"]';
+      scheduleCommit();
+      var selector = '[data-input="' + el.getAttribute('data-input') + '"]' + (key ? '[data-name="' + key + '"]' : '');
       var next = document.querySelector(selector);
       if (next) {
         next.focus();
@@ -149,6 +160,16 @@
   async function afterAction() {
     await commit();
     render();
+  }
+
+  /* 防抖落库：实时输入（data-live）期间不每次 flush，松开输入 400ms 后再写盘，避免逐键写 IndexedDB 卡顿 */
+  var commitTimer = null;
+  function scheduleCommit() {
+    if (commitTimer) clearTimeout(commitTimer);
+    commitTimer = setTimeout(function () {
+      commitTimer = null;
+      app.commit();
+    }, 400);
   }
 
   /** 落库（脏数据刷新） */
@@ -213,6 +234,20 @@
   }
 
   app.render = render;
+
+  /* ---------------- 实时输入判定（纯函数，可单测） ---------------- */
+
+  /** 是否处于输入法组合中（中文/日文等）—— 组合中必须忽略 input 事件，否则会打断组字 */
+  app._isComposing = function _isComposing(el, ev) {
+    if (ev && ev.isComposing) return true;
+    if (el && (el.isComposing || el.composing)) return true;
+    return false;
+  };
+
+  /** 该输入是否为“实时预览”字段（data-live="1"）—— 是则重渲染并恢复焦点 */
+  app._isLive = function _isLive(el) {
+    return !!(el && el.getAttribute && el.getAttribute('data-live') === '1');
+  };
 
   function navItems() {
     return [

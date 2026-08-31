@@ -407,7 +407,7 @@
     /* 选款 → 矩阵批量填数 */
     h += '<div class="card"><div class="card-title">按色码批量填数' +
       '<span class="more">点格子数量 +1</span></div>' +
-      '<div class="row mb8"><input class="input" data-input="form-keyword" placeholder="搜索款号 / 名称 / 条码" value="' + esc(form.keyword) + '"></div>';
+      '<div class="row mb8"><input class="input" data-input="form-keyword" data-name="keyword" data-live="1" placeholder="搜索款号 / 名称 / 条码" value="' + esc(form.keyword) + '"></div>';
 
     var kw = String(form.keyword || '').toUpperCase();
     var styles = ctx.data.products.filter(function (p) {
@@ -480,7 +480,7 @@
     var paid = util.parseMoney(form.paid);
     h += '<div class="card">' +
       '<div class="field"><label>已付金额（元）</label>' +
-      '<input class="input" data-input="field" data-name="paid" inputmode="decimal" placeholder="0" value="' + esc(form.paid) + '"></div>' +
+      '<input class="input" data-input="field" data-name="paid" data-live="1" inputmode="decimal" placeholder="0" value="' + esc(form.paid) + '"></div>' +
       '<div class="row between"><span class="muted">本次欠款</span>' +
       '<span class="strong" style="color:' + (t - paid > 0 ? '#dc2626' : '#16a34a') + '">' + ui.money(t - paid) + '</span></div>' +
       '<div class="field mt8"><label>备注</label>' +
