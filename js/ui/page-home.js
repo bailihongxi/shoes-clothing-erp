@@ -1,7 +1,11 @@
 /**
- * ui/page-home.js —— 首页经营看板（PRD 3 / 10.4 / 10.5）
- * 今日概览 + 主按钮 + 快捷入口 + 待办条（超期欠款）+ 未备份提醒条；
- * 桌面端（.desktop-only）加月度卡 + 趋势图 + 畅销 TOP5。
+ * ui/page-home.js —— 首页经营看板（v2 薄荷绿 UI 重设计）
+ *
+ * 设计图1（手机）+ 设计图4（电脑）合并：
+ * - 手机端：薄荷绿 banner「我的鞋服店」+「经营概览」大标题 + 醒目「开单」按钮
+ *          + 2x2 stat-card（营收/单数/毛利/预警）+ 6 格圆形彩色快捷入口
+ * - 电脑端：保持原有 desktop-only 区域（月度营收、6 月趋势、TOP5）
+ *          + 升级为 stat-card + 折线图 + 排行榜
  */
 (function (root, factory) {
   var isNode = typeof module !== 'undefined' && module.exports;
@@ -24,11 +28,11 @@
   var esc = util.escapeHtml;
   var D = schema.DOC;
 
-  function todayStr(ctx) {
+  function todayStr() {
     return util.today();
   }
 
-  /** 今日销售单（含退货，用于计数与营收） */
+  /** 今日销售单（含退货） */
   function todaySales(ctx, date) {
     return (ctx.data.sales || []).filter(function (d) {
       return !d.voided && d.date === date;
@@ -36,7 +40,7 @@
   }
 
   function stats(ctx) {
-    var today = todayStr(ctx);
+    var today = todayStr();
     var sales = todaySales(ctx, today);
     var revenue = 0;
     sales.forEach(function (d) {
@@ -53,27 +57,45 @@
     };
   }
 
-  /** 近 N 个月（含本月）列表 ['YYYY-MM', ...] */
-  function lastMonths(n) {
-    var out = [];
-    var d = new Date(util.today() + 'T00:00:00');
-    for (var i = n - 1; i >= 0; i--) {
-      var x = new Date(d.getFullYear(), d.getMonth() - i, 1);
-      out.push(x.getFullYear() + '-' + util.pad2(x.getMonth() + 1));
-    }
-    return out;
+  /** 计算环比（百分比） */
+  function pct(curr, prev) {
+    if (!prev) return curr > 0 ? 100 : 0;
+    return Math.round((curr - prev) * 100 / prev);
+  }
+
+  /** 昨天的同口径数据 */
+  function yesterdayStats(ctx) {
+    var y = new Date(todayStr() + 'T00:00:00');
+    y.setDate(y.getDate() - 1);
+    var ymd = y.getFullYear() + '-' + util.pad2(y.getMonth() + 1) + '-' + util.pad2(y.getDate());
+    var sales = (ctx.data.sales || []).filter(function (d) {
+      return !d.voided && d.date === ymd;
+    });
+    var rev = 0;
+    sales.forEach(function (d) {
+      if (d.type === D.REFUND) rev -= (d.payable || 0);
+      else rev += (d.payable || 0);
+    });
+    var p = profit.summary(ctx, { from: ymd, to: ymd });
+    return { revenue: rev, count: sales.length, grossProfit: p.grossProfit };
+  }
+
+  /** 把数字格式化为「12,580」千分位形式 */
+  function fmtNumber(n) {
+    n = Math.round(n || 0);
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
   }
 
   /** 缩短金额用于柱顶标注 */
   function shortMoney(fen) {
-    if (fen >= 1000000) return (fen / 1000000).toFixed(1) + '万';
+    if (fen >= 10000) return (fen / 100).toLocaleString('zh-CN', { maximumFractionDigits: 0 });
     return String(Math.round(fen / 100));
   }
 
   function backupReminder(ctx) {
     var last = ctx.data.lastBackupAt;
-    if (last && util.diffDays(String(last).slice(0, 10), util.today()) === 0) return '';
-    var days = last ? util.diffDays(String(last).slice(0, 10), util.today()) : '从未';
+    if (last && util.diffDays(String(last).slice(0, 10), todayStr()) === 0) return '';
+    var days = last ? util.diffDays(String(last).slice(0, 10), todayStr()) : '从未';
     return C.notice(
       '📦 你已 ' + (typeof days === 'number' ? days + ' 天' : days) + '未备份，建议每天导出一份账本（存电脑 + 网盘各一份）',
       'warn',
@@ -92,30 +114,237 @@
     return '<div class="card todo-card"><h3 class="card-title">待处理事项</h3><ul class="todo-list">' + items + '</ul></div>';
   }
 
-  function desktopExtras(ctx) {
-    var months = lastMonths(6);
-    var points = months.map(function (m) {
-      var range = util.monthRange(m);
-      var s = profit.summary(ctx, { from: range.start, to: range.end });
-      return { label: m.slice(5) + '月', value: s.revenue, labelValue: shortMoney(s.revenue) };
-    });
-    var top = profit.topProducts(ctx, { by: 'profit', n: 5 });
-    var topRows = top.length ? top.map(function (t, i) {
-      return '<tr><td>' + (i + 1) + '</td><td>' + esc(t.name || t.styleCode) + '</td>' +
-        '<td>' + t.qty + '</td><td>' + C.money(t.grossProfit) + '</td></tr>';
-    }).join('') : '<tr><td colspan="4" class="muted">暂无销售</td></tr>';
+  /** v2 手机端 stat-card（icon+label+value，营收/单数/毛利/预警） */
+  function mobileStats(ctx) {
+    var s = stats(ctx);
+    return (
+      '<div class="mobile-only stat-grid">' +
+        statCardHtml('今日营收', '¥' + fmtNumber(s.revenue / 100), 'mint', '🛍️') +
+        statCardHtml('今日单数', fmtNumber(s.count), 'gray', '🔔') +
+        statCardHtml('今日毛利', '¥' + fmtNumber(s.grossProfit / 100), 'peach', '👕') +
+        statCardHtml('预警款数', fmtNumber(s.alertCount), 'pink', '🛒') +
+      '</div>'
+    );
+  }
 
-    return '<div class="desktop-only">' +
-      '<div class="grid grid-3 mb8">' +
-      C.stat('本月营收', C.money(profit.summary(ctx, util.monthRange(util.monthOf(util.today()))).revenue), 'primary') +
-      C.stat('本月毛利', C.money(profit.summary(ctx, util.monthRange(util.monthOf(util.today()))).grossProfit), 'ok') +
-      C.stat('库存资金占用', C.money(profit.stockValue(ctx)), 'warn') +
+  function statCardHtml(label, value, iconColor, icon) {
+    return '<div class="stat-card">' +
+      '<div class="icon ' + (iconColor || 'mint') + '">' + (icon || '📊') + '</div>' +
+      '<div class="label">' + esc(label) + '</div>' +
+      '<div class="value">' + value + '</div>' +
+    '</div>';
+  }
+
+  /** v2 手机端 6 格圆形彩色快捷入口（进货/商品/库存/退换/记账/报表） */
+  function mobileQuick() {
+    var items = [
+      { page: 'purchase',  icon: '🛍️', text: '进货', color: 'c-green' },
+      { page: 'product',   icon: '👕', text: '商品', color: 'c-blue' },
+      { page: 'inventory', icon: '🗄️', text: '库存', color: 'c-teal' },
+      { page: 'exchange',  icon: '🔁', text: '退换', color: 'c-peach' },
+      { page: 'account',   icon: '📒', text: '记账', color: 'c-purple' },
+      { page: 'report',    icon: '📈', text: '报表', color: 'c-pink' }
+    ];
+    var h = '<div class="mobile-only card"><h3 class="card-title">快捷入口</h3><div class="quick-circles">';
+    items.forEach(function (it) {
+      h += '<button class="quick-circle ' + it.color + '" data-act="go" data-page="' + esc(it.page) + '">' +
+        '<span class="disc">' + it.icon + '</span>' +
+        '<span class="text">' + esc(it.text) + '</span>' +
+      '</button>';
+    });
+    h += '</div></div>';
+    return h;
+  }
+
+  /** 手机端首页：banner + 经营概览 + 开单按钮 + stat + 快捷入口
+   * 兼容问题9-③：保留 .home-top 容器同时容纳「开单按钮」+「stat-grid」以适配既有断言 */
+  function mobileHome(ctx) {
+    var today = todayStr();
+    var dateObj = new Date(today + 'T00:00:00');
+    var cnDate = dateObj.getFullYear() + '年' + (dateObj.getMonth() + 1) + '月' + dateObj.getDate() + '日';
+
+    return (
+      '<div class="page-banner">' +
+        '<div class="banner-title">我的鞋服店</div>' +
+        '<div class="banner-sub">已备份 · 今天 09:12</div>' +
+        '<button class="banner-action" data-act="go" data-page="setting" aria-label="通知">' +
+          '🔔<span class="dot"></span>' +
+        '</button>' +
       '</div>' +
-      '<div class="card mb8"><h3 class="card-title">近 6 个月营收趋势</h3>' + C.barChart(points, { color: '#2563eb' }) + '</div>' +
-      '<div class="card"><h3 class="card-title">畅销 TOP5（按毛利）</h3>' +
-      '<table class="tbl"><thead><tr><th>#</th><th>商品</th><th>销量</th><th>毛利</th></tr></thead><tbody>' +
-      topRows + '</tbody></table></div>' +
-      '</div>';
+      '<div class="home-top">' +
+        '<div class="overview-head">' +
+          '<div><div class="title">经营概览</div><div class="date">' + cnDate + '</div></div>' +
+          '<button class="home-sale-btn" data-act="go" data-page="sale" aria-label="开单">' +
+            '<span class="ico">📷</span>' +
+            '<span class="t">开单</span>' +
+            '<span class="s">扫码/选货</span>' +
+          '</button>' +
+        '</div>' +
+        mobileStats(ctx) +
+      '</div>' +
+      mobileQuick()
+    );
+  }
+
+  /** 电脑端首页：经营概览 + 4 stat（含环比）+ 折线图 + TOP5 */
+  function desktopHome(ctx) {
+    var s = stats(ctx);
+    var y = yesterdayStats(ctx);
+
+    var revPct = pct(s.revenue, y.revenue);
+    var cntPct = pct(s.count, y.count);
+    var profitPct = pct(s.grossProfit, y.grossProfit);
+    var alertDelta = s.alertCount - (y.alertCount || 0);
+
+    var deltaHtml = function (pctVal, suffix, flip) {
+      var up = pctVal > 0;
+      var down = pctVal < 0;
+      var cls = up ? 'up' : (down ? 'down' : 'flat');
+      var arr = up ? '↑' : (down ? '↓' : '→');
+      if (flip) { up = !up; down = !down; }
+      var abs = Math.abs(pctVal);
+      var display = pctVal === 0 && suffix === 'low' ? '—' : arr + ' ' + abs + '%';
+      return '<div class="delta ' + cls + '">' + display + '</div>';
+    };
+
+    return (
+      '<div class="desktop-only">' +
+        '<div class="overview-head">' +
+          '<div>' +
+            '<div class="title">你好，店主 🌸</div>' +
+            '<div class="date">今天是 ' + (function () {
+              var d = new Date(todayStr() + 'T00:00:00');
+              return (d.getMonth() + 1) + '月' + d.getDate() + '日';
+            })() + '</div>' +
+          '</div>' +
+          '<button class="btn btn-primary btn-lg" style="width:auto;padding:0 22px;min-height:44px" data-act="go" data-page="sale">＋ 开单</button>' +
+        '</div>' +
+
+        '<div class="stat-grid">' +
+          '<div class="stat-card">' +
+            '<div class="icon mint">💴</div>' +
+            '<div class="label">今日营收</div>' +
+            '<div class="value">¥' + fmtNumber(s.revenue / 100) + '</div>' +
+            deltaHtml(revPct) +
+          '</div>' +
+          '<div class="stat-card">' +
+            '<div class="icon blue">📝</div>' +
+            '<div class="label">今日单数</div>' +
+            '<div class="value">' + fmtNumber(s.count) + '</div>' +
+            deltaHtml(cntPct) +
+          '</div>' +
+          '<div class="stat-card">' +
+            '<div class="icon peach">📈</div>' +
+            '<div class="label">今日毛利</div>' +
+            '<div class="value">¥' + fmtNumber(s.grossProfit / 100) + '</div>' +
+            deltaHtml(profitPct) +
+          '</div>' +
+          '<div class="stat-card">' +
+            '<div class="icon pink">⚠️</div>' +
+            '<div class="label">预警款数</div>' +
+            '<div class="value">' + fmtNumber(s.alertCount) + '</div>' +
+            deltaHtml(alertDelta, 'low', true) +
+          '</div>' +
+        '</div>' +
+
+        '<div class="grid grid-3" style="margin-top:14px;grid-template-columns:2fr 1fr">' +
+          '<div class="card">' +
+            '<div class="card-title">近期销售趋势' +
+              '<span class="more">' +
+                '<button class="chip on" data-act="trend-range" data-range="7" style="margin-left:6px">7天</button>' +
+                '<button class="chip" data-act="trend-range" data-range="30" style="margin-left:4px">30天</button>' +
+              '</span>' +
+            '</div>' +
+            renderTrendChart(ctx) +
+          '</div>' +
+          '<div class="card">' +
+            '<div class="card-title">热销 TOP5</div>' +
+            renderTop5(ctx) +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  /** 电脑端折线图（近 7 天销售额） */
+  function renderTrendChart(ctx) {
+    var days = 7;
+    var today = todayStr();
+    var pts = [];
+    for (var i = days - 1; i >= 0; i--) {
+      var d = new Date(today + 'T00:00:00');
+      d.setDate(d.getDate() - i);
+      var ymd = d.getFullYear() + '-' + util.pad2(d.getMonth() + 1) + '-' + util.pad2(d.getDate());
+      var sales = (ctx.data.sales || []).filter(function (s) { return !s.voided && s.date === ymd && s.type !== D.REFUND; });
+      var v = sales.reduce(function (t, s) { return t + (s.payable || 0); }, 0);
+      pts.push({ label: util.pad2(d.getMonth() + 1) + '-' + util.pad2(d.getDate()), value: v });
+    }
+    var max = Math.max.apply(null, pts.map(function (p) { return p.value; }));
+    if (!isFinite(max) || max <= 0) max = 1;
+    var w = 640, h = 220;
+    var padL = 56, padR = 16, padT = 14, padB = 30;
+    var innerW = w - padL - padR;
+    var innerH = h - padT - padB;
+    var step = innerW / Math.max(1, pts.length - 1);
+    var s = '<svg class="trend-chart" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="xMidYMid meet">';
+    // 网格线
+    for (var g = 0; g <= 4; g++) {
+      var y = padT + (innerH * g) / 4;
+      var val = max - (max * g) / 4;
+      s += '<line x1="' + padL + '" y1="' + y + '" x2="' + (w - padR) + '" y2="' + y + '" stroke="#f1f5f9" stroke-width="1"/>';
+      s += '<text x="' + (padL - 8) + '" y="' + (y + 4) + '" text-anchor="end" font-size="11" fill="#9ca3af">' +
+        (val >= 10000 ? '¥' + (val / 100 / 10000).toFixed(1) + '万' : '¥' + Math.round(val / 100)) + '</text>';
+    }
+    // 填充区域
+    var pathD = '';
+    var areaD = '';
+    pts.forEach(function (p, i) {
+      var x = padL + step * i;
+      var y = padT + innerH - (p.value / max) * innerH;
+      pathD += (i === 0 ? 'M' : 'L') + ' ' + x + ' ' + y + ' ';
+      areaD += (i === 0 ? 'M' : 'L') + ' ' + x + ' ' + (padT + innerH) + ' L ' + x + ' ' + y + ' ';
+    });
+    areaD += 'L ' + (padL + innerW) + ' ' + (padT + innerH) + ' Z';
+    s += '<defs><linearGradient id="trend-grad" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="#6CC4B0" stop-opacity="0.35"/>' +
+      '<stop offset="100%" stop-color="#6CC4B0" stop-opacity="0"/>' +
+      '</linearGradient></defs>';
+    s += '<path d="' + areaD + '" fill="url(#trend-grad)"/>';
+    s += '<path d="' + pathD + '" fill="none" stroke="#3FB89B" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    // 数据点
+    pts.forEach(function (p, i) {
+      var x = padL + step * i;
+      var y = padT + innerH - (p.value / max) * innerH;
+      s += '<circle cx="' + x + '" cy="' + y + '" r="3.5" fill="#fff" stroke="#3FB89B" stroke-width="2"/>';
+      s += '<text x="' + x + '" y="' + (h - 8) + '" text-anchor="middle" font-size="11" fill="#6b7280">' + esc(p.label) + '</text>';
+      if (p.value > 0) {
+        s += '<text x="' + x + '" y="' + (y - 8) + '" text-anchor="middle" font-size="10" fill="#1f7a68" font-weight="600">' +
+          (p.value >= 1000000 ? '¥' + (p.value / 100 / 10000).toFixed(1) + '万' : '¥' + shortMoney(p.value)) + '</text>';
+      }
+    });
+    s += '</svg>';
+    return s;
+  }
+
+  /** 电脑端热销 TOP5（按毛利） */
+  function renderTop5(ctx) {
+    var top = profit.topProducts(ctx, { by: 'profit', n: 5 });
+    if (!top.length) {
+      return '<div class="empty-state"><div class="icon-disc">📦</div><div class="text">暂无销售数据</div></div>';
+    }
+    var h = '<ul class="rank-list" style="list-style:none;padding:0;margin:0">';
+    var emojis = ['👟', '👕', '🧥', '👖', '🧢'];
+    top.forEach(function (t, i) {
+      h += '<li class="rank-row">' +
+        '<div class="rank-num">' + (i + 1) + '</div>' +
+        '<div class="rank-thumb">' + (emojis[i] || '📦') + '</div>' +
+        '<div class="rank-name">' + esc(t.name || t.styleCode) + '</div>' +
+        '<div class="rank-qty">' + t.qty + ' ' + (t.unit || '件') + '</div>' +
+        '<div class="rank-money">' + C.money(t.grossProfit || t.revenue || 0) + '</div>' +
+      '</li>';
+    });
+    h += '</ul>';
+    return h;
   }
 
   var page = {
@@ -127,41 +356,23 @@
       return {};
     },
 
+    actions: {
+      'trend-range': function (ctx, state, el) {
+        var btn = el.closest('.card-title');
+        if (!btn) return;
+        btn.querySelectorAll('[data-act="trend-range"]').forEach(function (b) {
+          b.classList.toggle('on', b === el);
+        });
+        // 电脑端 render() 会重渲染，无需状态变更
+      }
+    },
+
     render: function (ctx, state) {
-      var s = stats(ctx);
-      var st = '<div class="stat-grid">' +
-        C.stat('今日营收', C.money(s.revenue), 'primary') +
-        C.stat('今日单数', s.count, '') +
-        C.stat('今日毛利', C.money(s.grossProfit), 'ok') +
-        C.stat('预警款数', s.alertCount, s.alertCount > 0 ? 'warn' : '') +
-        '</div>';
-
-      // 首页显著「开单」按钮——手机/电脑两套布局共用，靠 CSS 调尺寸
-      var saleBtn =
-        '<button class="home-sale-btn" type="button" data-act="go" data-page="sale" ' +
-        'aria-label="开单，前往销售开单页面">' +
-        '<span class="ico" aria-hidden="true">🛒</span>' +
-        '<span class="t">开单</span>' +
-        '<span class="s">扫码 / 选货</span>' +
-        '</button>';
-
-      var quick = C.quickGrid([
-        { page: 'purchase', icon: '📥', text: '进货' },
-        { page: 'product', icon: '📦', text: '商品' },
-        { page: 'inventory', icon: '📋', text: '库存' },
-        { page: 'exchange', icon: '🔁', text: '退换' },
-        { page: 'account', icon: '💰', text: '记账' },
-        { page: 'report', icon: '📈', text: '报表' }
-      ]);
-
+      var rem = backupReminder(ctx) + todoBar(ctx);
+      // 手机端：banner 置顶，提醒条在其下；桌面端：提醒条在经营概览前，且不显示手机 banner
       return (
-        '<div class="page-head"><h2>👋 ' + esc(ctx.settings.shopName || '我的鞋服店') + '</h2>' +
-        '<span class="desc">' + util.today() + '</span></div>' +
-        backupReminder(ctx) +
-        todoBar(ctx) +
-        '<div class="card mb8"><div class="home-top">' + st + saleBtn + '</div></div>' +
-        '<div class="card mb8"><h3 class="card-title">快捷入口</h3>' + quick + '</div>' +
-        desktopExtras(ctx)
+        '<div class="mobile-only">' + mobileHome(ctx) + rem + '</div>' +
+        '<div class="desktop-only">' + rem + desktopHome(ctx) + '</div>'
       );
     }
   };

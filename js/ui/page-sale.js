@@ -328,8 +328,12 @@
     var h = '<div class="page-head"><h2>销售开单</h2>' +
       '<span class="desc">搜索选品 → 点色码加单 → 收款保存</span></div>';
 
-    /* 选品搜索 */
-    h += '<div class="card">' + ui.searchBar({ value: form.keyword, placeholder: '搜索名称 / 款号 / 条码', scan: true });
+    h += '<div class="sale-three-col">';
+
+    /* ---------- 左列：选货区（搜索 + 款 chips + 色码矩阵） ---------- */
+    h += '<div class="sale-col-pick">';
+    h += '<div class="card"><div class="card-title">选货区</div>' +
+      ui.searchBar({ value: form.keyword, placeholder: '搜索名称 / 款号 / 条码', scan: true });
     var kw = String(form.keyword || '').toUpperCase();
     var styles = ctx.data.products.filter(function (p) {
       if (!kw) return p.status !== schema.STATUS.OFF;
@@ -358,10 +362,12 @@
       }
     }
     h += '</div>';
+    h += '</div>';
 
-    /* 购物车 */
+    /* ---------- 中列：当前订单（明细 + 折扣 + 合计 + 出单） ---------- */
+    h += '<div class="sale-col-order">';
     var t = calc;
-    h += '<div class="card"><div class="card-title">开单明细（' + form.items.length + ' 行）' +
+    h += '<div class="card"><div class="card-title">当前订单（' + form.items.length + ' 行）' +
       (form.items.length ? '<button class="btn btn-sm" data-act="clear-items">清空</button>' : '') + '</div>';
     if (!form.items.length) {
       h += ui.empty('还没有商品，先搜索并点色码加入');
@@ -392,7 +398,6 @@
     }
     h += '</div>';
 
-    /* 结算 */
     h += '<div class="card">';
     h += '<div class="row between"><span class="muted">应收合计</span><span class="strong big">' + ui.money(t.payable) + '</span></div>';
     if (t.giftQty) {
@@ -400,7 +405,12 @@
     }
     h += '<div class="field mt8"><label>整单折扣 / 抹零（元）</label>' +
       '<input class="input" data-input="field" data-name="discount" inputmode="decimal" placeholder="0" value="' + esc(form.discount) + '"></div>';
+    h += '</div>';
+    h += '</div>';
 
+    /* ---------- 右列：收款（支付方式 + 实收 + 欠款处理） ---------- */
+    h += '<div class="sale-col-pay">';
+    h += '<div class="card"><div class="card-title">收款</div>';
     h += '<div class="field"><label>收款（元）</label>' +
       '<div class="grid grid-3">' +
       payInput('微信', 'pay.wechat', form.pay.wechat) +
@@ -429,13 +439,17 @@
 
     h += '<div class="field mt8"><label>备注</label>' +
       '<input class="input" data-input="field" data-name="note" placeholder="选填" value="' + esc(form.note) + '"></div>';
-    h += '</div>';
 
-    h += '<div class="row">' +
+    /* 收款栏底部：取消 + 保存并出单（手机端位于收款之后，顺序正确） */
+    h += '<div class="row mt8">' +
       '<button class="btn" data-act="cancel-form">取消</button>' +
       '<div class="spacer"></div>' +
       '<button class="btn btn-primary btn-lg" data-act="save-sale">保存并出单</button>' +
       '</div>';
+    h += '</div>';
+    h += '</div>';
+
+    h += '</div>'; // sale-three-col
     return h;
   }
 

@@ -368,11 +368,11 @@
     },
 
     render: function (ctx, state) {
+      var rem = backupReminder(ctx) + todoBar(ctx);
+      // 手机端：banner 置顶，提醒条在其下；桌面端：提醒条在经营概览前，且不显示手机 banner
       return (
-        backupReminder(ctx) +
-        todoBar(ctx) +
-        mobileHome(ctx) +
-        desktopHome(ctx)
+        '<div class="mobile-only">' + mobileHome(ctx) + rem + '</div>' +
+        '<div class="desktop-only">' + rem + desktopHome(ctx) + '</div>'
       );
     }
   };

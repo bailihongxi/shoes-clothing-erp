@@ -198,6 +198,14 @@ button, input, select, textarea {
   left: auto;
 }
 
+/* 通用页头 banner（非首页专用）：内容少的页面用紧凑留白 */
+.page-banner-plain {
+  padding-bottom: 18px;
+}
+.page-banner-plain .banner-title {
+  font-size: 18px;
+}
+
 /* ---------- 卡片 / 区块 ---------- */
 
 .card {

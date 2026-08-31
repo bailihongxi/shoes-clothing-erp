@@ -3,7 +3,7 @@
  * 作用：缓存应用外壳，断网后仍可打开使用（PRD 7 / 开发计划 Sprint 8）。
  * 更新策略：外壳走 cache-first，页面导航也优先缓存；后台静默更新。
  */
-var CACHE = 'shoe-erp-v5';
+var CACHE = 'shoe-erp-v6';
 var SHELL = [
   './',
   './index.html',

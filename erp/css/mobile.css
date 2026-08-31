@@ -98,6 +98,9 @@
   /* v2 薄荷绿 banner 在手机上替代旧 app-header */
   .app-header { display: none; }
 
+  /* 电脑端顶栏（店名+全局搜索+铃铛+头像）仅在电脑端显示 */
+  .top-bar { display: none; }
+
   /* v2 库存页 stat cards：手机端并排 2 列（左大右小） */
   .inventory-stats {
     display: grid;

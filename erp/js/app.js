@@ -135,6 +135,28 @@
       }
     });
 
+    // 电脑端顶栏全局搜索：回车后带关键词跳转「商品档案」页
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Enter') return;
+      var el = ev.target;
+      if (!el || !el.id || el.id !== 'global-search-input') return;
+      ev.preventDefault();
+      var val = String(el.value || '').trim();
+      el.blur();
+      if (!val) {
+        router().go('product');
+        return;
+      }
+      if (!app.pageStates.product) {
+        app.pageStates.product = (ERP.pages && ERP.pages.product && ERP.pages.product.init
+          ? ERP.pages.product.init(app.ctx)
+          : {});
+      }
+      app.pageStates.product.keyword = val;
+      app.pageStates.product.page = 1;
+      router().go('product');
+    });
+
     // 安全网：页面被隐藏 / 卸载前，把尚未落库的脏数据最佳努力写入 IndexedDB，
     // 避免「刚保存就刷新/切走」导致的数据丢失（IndexedDB 事务在页面卸载时可能被中断）。
     function flushOnHide() {
@@ -267,6 +289,7 @@
         (err && err.message ? String(err.message) : String(err)) + '</div></div>';
       if (typeof console !== 'undefined') console.error(err);
     }
+    html = decorateHtml(page, html);
 
     app.main.innerHTML = html;
     document.title = (app.ctx.settings.shopName || '鞋服店') + ' · ' + (page.title || '');
@@ -279,6 +302,28 @@
     }
     if (typeof window !== 'undefined') window.scrollTo(0, 0);
   }
+
+  /** 页面渲染结果是否已自带薄荷绿 banner（home/inventory/mine 已内置） */
+  function hasBanner(html) {
+    return /class="[^"]*page-banner/.test(html || '');
+  }
+
+  /** 手机端统一页头 banner：标题 + 可选右上角动作；桌面端由各页 page-head 负责 */
+  function mobileBanner(page) {
+    return '<div class="page-banner mobile-only page-banner-plain">' +
+      '<div class="banner-title">' + (page.title || page.name || '') + '</div>' +
+      '</div>';
+  }
+
+  /** 渲染前给手机端页面自动补齐薄荷绿 banner（除自带 banner 的页面外） */
+  function decorateHtml(page, html) {
+    if (hasBanner(html)) return html;
+    return mobileBanner(page) + html;
+  }
+
+  app.hasBanner = hasBanner;
+  app.mobileBanner = mobileBanner;
+  app.decorateHtml = decorateHtml;
 
   app.render = render;
 
@@ -338,6 +383,20 @@
     if (brand) brand.textContent = app.ctx.settings.shopName || '我的鞋服店';
     var sbrand = document.querySelector('.app-sidebar .brand');
     if (sbrand) sbrand.innerHTML = '👟 <span>' + (app.ctx.settings.shopName || '我的鞋服店') + '</span>';
+
+    /* 电脑端顶栏（v2）：店名 + 铃铛红点（有低库存预警时亮） */
+    var topShop = document.getElementById('top-shop-name');
+    if (topShop) topShop.textContent = app.ctx.settings.shopName || '我的鞋服店';
+    var bellDot = document.getElementById('top-bell-dot');
+    if (bellDot) {
+      var alertCount = 0;
+      try {
+        alertCount = (ERP.inventory && ERP.inventory.alertStyleCount
+          ? ERP.inventory.alertStyleCount(app.ctx) : 0) || 0;
+      } catch (e) { /* 库存引擎未就绪时忽略 */ }
+      if (alertCount > 0) bellDot.classList.remove('hidden');
+      else bellDot.classList.add('hidden');
+    }
   }
 
   app.actions = {

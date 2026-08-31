@@ -189,6 +189,14 @@
   .stat-card .icon { width: 40px; height: 40px; font-size: 22px; border-radius: 12px; }
   .stat-card .value { font-size: 28px; }
 
+  /* 库存页桌面 4 统计卡（设计图 1-5） */
+  .desktop-stats { margin-bottom: 14px; }
+  .desktop-stats .stat-card { min-height: 96px; }
+
+  /* 我的页桌面端内容宽度收窄，避免卡片过宽 */
+  .mine-desktop { max-width: 760px; }
+  .mine-desktop .quick-grid { grid-template-columns: repeat(4, 1fr); }
+
   /* v2 quick-circle 6 列布局 */
   .quick-circles { grid-template-columns: repeat(6, 1fr); gap: 16px; }
   .quick-circle .disc { width: 56px; height: 56px; font-size: 26px; }

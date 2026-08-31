@@ -124,9 +124,10 @@ test('desktop.css 已适配 v2：薄荷绿侧栏 + top-bar + 3 列开单布局',
   assert.ok(css.includes('.mobile-only'), 'desktop.css 应隐藏 mobile-only');
 });
 
-test('sw.js CACHE 已升级到 v5（问题14-② 库存/我的页 v2 后重新预缓存）', () => {
+test('sw.js CACHE 已升级到 v6（问题15 全项目 UI v3 后重新预缓存）', () => {
   const sw = readFile('sw.js');
-  assert.ok(sw.includes("CACHE = 'shoe-erp-v5'"), 'sw.js CACHE 应为 shoe-erp-v5');
+  assert.ok(sw.includes("CACHE = 'shoe-erp-v6'"), 'sw.js CACHE 应为 shoe-erp-v6');
+  assert.ok(!sw.includes("shoe-erp-v5'"), 'CACHE 不再是 v5（旧 PWA 不会重新预缓存）');
   // SHELL 列表必须包含全部 CSS 文件 + 阶段②新增/修改的页面
   assert.ok(sw.includes('./css/base.css'), 'SHELL 应包含 css/base.css');
   assert.ok(sw.includes('./css/mobile.css'), 'SHELL 应包含 css/mobile.css');

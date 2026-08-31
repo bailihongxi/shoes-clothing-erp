@@ -193,22 +193,37 @@
     },
 
     render: function (ctx, state) {
-      return mobileMine(ctx, state);
+      return (
+        '<div class="mobile-only">' + mobileMine(ctx, state) + '</div>' +
+        '<div class="desktop-only">' + desktopMine(ctx, state) + '</div>'
+      );
     }
   };
 
+  /* ---------------- 桌面端我的（banner 收进手机端，桌面用 page-head） ---------------- */
+
+  function desktopMine(ctx, state) {
+    var s = ctx.settings || {};
+    var h = '<div class="page-head"><h2>我的</h2>' +
+      '<span class="desc">' + esc(s.shopName || '我的鞋服店') + ' · 进销存记账</span></div>';
+    h += '<div class="mine-desktop">' + mobileMine(ctx, state, true) + '</div>';
+    return h;
+  }
+
   /* ---------------- 手机端我的（v2 设计图 1-3） ---------------- */
 
-  function mobileMine(ctx, state) {
+  function mobileMine(ctx, state, noBanner) {
     var s = ctx.settings || {};
     var cfg = state.cfg || sync.defaultConfig();
 
     var h = '';
 
-    // 1. 薄荷绿 banner
-    h += '<div class="page-banner mine-banner">' +
-      '<div class="banner-title">我的</div>' +
-    '</div>';
+    // 1. 薄荷绿 banner（桌面端由 page-head 替代，noBanner=true 时跳过）
+    if (!noBanner) {
+      h += '<div class="page-banner mine-banner">' +
+        '<div class="banner-title">我的</div>' +
+      '</div>';
+    }
 
     // 2. 店铺信息卡片（圆形头像 + 名称 + 副标题 + 右箭头）
     h += '<div class="shop-info-card" data-act="go-shop-edit">' +

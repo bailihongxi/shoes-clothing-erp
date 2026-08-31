@@ -52,6 +52,7 @@
       return {
         tab: 'list',
         keyword: '',
+        cat: '',
         page: 1,
         expanded: '',
         logsSku: '',
@@ -78,12 +79,15 @@
         (st.tab === 'alert' && inv.getAlerts(ctx).length ? alertTableOnly(ctx, st) : '') +
         (st.tab === 'take' ? takeOnly(ctx, st) : '');
 
-      // 电脑端：标题 + 3 按钮 + searchBar + body（body 内部含表格）
+      // 电脑端：标题 + 4 统计卡 + 3 按钮 + searchBar + body（body 内部含表格）
       var desktopPart =
         '<div class="page-head"><h2>' + pageTitle(st) + '</h2>' +
           '<span class="desc">' + pageDesc(ctx, st) + '</span></div>' +
+        (st.tab === 'list' ? desktopStats(ctx) : '') +
         desktopTabs(ctx, st) +
-        '<div class="card">' + ui.searchBar({ value: st.keyword, placeholder: '搜款号 / 名称 / 条码（可扫码）' }) + '</div>' +
+        '<div class="card">' + ui.searchBar({ value: st.keyword, placeholder: '搜款号 / 名称 / 条码（可扫码）' }) +
+        desktopFilters(ctx, st) +
+        '</div>' +
         body;
 
       return '<div class="mobile-only">' + mobilePart + '</div>' +
@@ -98,6 +102,18 @@
 
       keyword: function (ctx, st, el) {
         st.keyword = el.value;
+        st.page = 1;
+      },
+
+      filter: function (ctx, st, el) {
+        var n = el.getAttribute('data-name');
+        if (n) st[n] = el.value;
+        st.page = 1;
+      },
+
+      'reset-filter': function (ctx, st) {
+        st.keyword = '';
+        st.cat = '';
         st.page = 1;
       },
 
@@ -311,11 +327,68 @@
       '</div>';
   }
 
+  /** 电脑端 4 统计卡（设计图 1-5）：总款式 / 总件数 / 资金占用 / 低库存预警 */
+  function desktopStats(ctx) {
+    var styleCount = (ctx.data.products || []).length;
+    var qty = totalQty(ctx);
+    var cap = inv.stockValue(ctx);
+    var alertCount = inv.getAlerts(ctx).length;
+    return (
+      '<div class="stat-grid desktop-stats">' +
+        '<div class="stat-card">' +
+          '<div class="icon mint">👟</div>' +
+          '<div class="label">总款式</div>' +
+          '<div class="value">' + styleCount + '</div>' +
+        '</div>' +
+        '<div class="stat-card">' +
+          '<div class="icon gray">📦</div>' +
+          '<div class="label">总件数</div>' +
+          '<div class="value">' + fmtNum(qty) + '</div>' +
+        '</div>' +
+        '<div class="stat-card">' +
+          '<div class="icon lemon">💰</div>' +
+          '<div class="label">资金占用</div>' +
+          '<div class="value">' + ui.money(cap) + '</div>' +
+        '</div>' +
+        '<div class="stat-card">' +
+          '<div class="icon pink">⚠️</div>' +
+          '<div class="label">低库存预警</div>' +
+          '<div class="value">' + fmtNum(alertCount) + '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  /** 电脑端筛选条（设计图 1-5）：分类下拉 + 重置 / 搜索 */
+  function desktopFilters(ctx, st) {
+    var cats = [];
+    (ctx.data.products || []).forEach(function (p) {
+      if (p.category && cats.indexOf(p.category) < 0) cats.push(p.category);
+    });
+    var opts = [{ value: '', text: '全部分类' }].concat(cats.map(function (c) {
+      return { value: c, text: c };
+    }));
+    return (
+      '<div class="row wrap mt8">' +
+        ui.select({ name: 'cat', value: st.cat, on: 'filter', options: opts }) +
+        '<div class="spacer"></div>' +
+        '<button class="btn" data-act="reset-filter">重置</button>' +
+      '</div>'
+    );
+  }
+
+  /** 千分位格式化 */
+  function fmtNum(n) {
+    return String(Math.round(n || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
   /* ---------------- 共用业务逻辑 ---------------- */
 
   function filterList(ctx, st) {
     var kw = String(st.keyword || '').trim().toUpperCase();
+    var cat = String(st.cat || '');
     return ctx.data.products.filter(function (p) {
+      if (cat && String(p.category || '') !== cat) return false;
       if (!kw) return true;
       if (String(p.styleCode).toUpperCase().indexOf(kw) >= 0) return true;
       if (String(p.name).toUpperCase().indexOf(kw) >= 0) return true;
