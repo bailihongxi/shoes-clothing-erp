@@ -28,7 +28,7 @@ test('首页：渲染含今日概览与快捷入口，顶栏 hero 有「开单�
   const ctx = newCtx();
   seedShop(ctx);
   const html = home.render(ctx, home.init(ctx));
-  assert.ok(/今日应收/.test(html), '应有今日应收卡');
+  assert.ok(/今日营收/.test(html), '应有今日营收卡');
   assert.ok(/快捷入口/.test(html), '应有快捷入口');
   // 问题9：顶栏 hero 有显著「开单」跳转按钮（手机/电脑共用）
   assert.ok(/class="home-sale-btn[^"]*"/.test(html), '应有 home-sale-btn 醒目按钮');
@@ -180,6 +180,59 @@ test('问题1：经营概览 stat-card 标签字号调小（营收/毛利等标�
   const ctx = newCtx();
   seedShop(ctx);
   const html = home.render(ctx, home.init(ctx));
-  assert.ok(/今日应收/.test(html) && /今日毛利/.test(html), '保留应收/毛利标签');
-  assert.ok(/今日开单/.test(html) && /预警款数/.test(html), '保留开单/预警标签');
+  assert.ok(/今日营收/.test(html) && /今日毛利/.test(html), '保留营收/毛利标签');
+  assert.ok(/今日单数/.test(html) && /预警款数/.test(html), '保留单数/预警标签');
+});
+
+/* ========== 手机版首页 UI 与文字应用到电脑版 ========== */
+
+const desktopCss = fs.readFileSync(path.join(ROOT, 'css/desktop.css'), 'utf8');
+
+function desktopBlock(html) {
+  const m = html.match(/<div class="desktop-only">([\s\S]*?)<\/div>\s*$/);
+  assert.ok(m, '应有 desktop-only 块');
+  return m[1];
+}
+
+test('电脑版首页：复用手机版 UI 与文字——banner+经营概览+2x2+开单大按钮+快捷入口', () => {
+  const ctx = newCtx();
+  seedShop(ctx);
+  const html = home.render(ctx, home.init(ctx));
+  const desk = desktopBlock(html);
+
+  // banner 与手机版一致
+  assert.ok(/我的鞋服店/.test(desk), '桌面应有「我的鞋服店」banner 标题');
+  assert.ok(/已备份 · 今天 09:12/.test(desk), '桌面 banner 副文案与手机版一致');
+  // 经营概览 + 日期
+  assert.ok(/经营概览/.test(desk), '桌面应有「经营概览」标题');
+  assert.ok(/年\d{1,2}月\d{1,2}日/.test(desk), '桌面应有中文日期（与手机版一致格式）');
+  // 2x2 stat + 右侧开单大按钮（文案与手机版一致）
+  assert.ok(/class=" stat-grid home-stat-2x2"/.test(desk), '桌面应复用 home-stat-2x2 2x2 容器');
+  assert.ok(/今日营收/.test(desk) && /今日单数/.test(desk) && /今日毛利/.test(desk) && /预警款数/.test(desk),
+    '桌面 stat 文案与手机版一致（今日营收/今日单数/今日毛利/预警款数）');
+  assert.ok(/class="home-sale-btn home-sale-row"/.test(desk), '桌面应有跨两行开单大按钮');
+  assert.ok(/开单/.test(desk) && /扫码 \/ 选货/.test(desk), '桌面开单按钮文案与手机版一致');
+  // 快捷入口 6 项
+  assert.ok(/快捷入口/.test(desk), '桌面应有快捷入口');
+  ['进货', '商品', '库存', '退换', '记账', '报表'].forEach(function (t) {
+    assert.ok(new RegExp(t).test(desk), '桌面快捷入口应含「' + t + '」');
+  });
+  // 分析看板保留
+  assert.ok(/近期销售趋势/.test(desk) && /热销 TOP5/.test(desk), '桌面保留分析看板');
+});
+
+test('电脑版首页：不再出现旧桌面文案「你好，店主」', () => {
+  const ctx = newCtx();
+  seedShop(ctx);
+  const html = home.render(ctx, home.init(ctx));
+  assert.ok(!/你好，店主/.test(html), '桌面已移除旧文案「你好，店主 🌸」');
+  assert.ok(!/今天是 \d+月\d+日/.test(html), '桌面已移除旧日期文案');
+});
+
+test('desktop.css：桌面端 home-stat-2x2 适配（3 列 grid + 开单按钮跨两行）', () => {
+  assert.ok(/\.home-top \.stat-grid\.home-stat-2x2\s*\{[^}]*grid-template-columns:\s*1fr 1fr 0\.85fr/.test(desktopCss),
+    'desktop.css 应定义桌面 2x2 三列网格');
+  assert.ok(/\.home-stat-2x2 \.home-sale-btn\.home-sale-row\s*\{[^}]*grid-row:\s*1 \/ span 2/.test(desktopCss),
+    'desktop.css 应定义开单按钮跨两行');
+  assert.ok(/\.home-top\s*\{\s*display:\s*block/.test(desktopCss), 'desktop.css 应将 home-top 恢复为纵向堆叠');
 });

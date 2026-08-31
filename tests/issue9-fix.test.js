@@ -45,9 +45,9 @@ test('问题9-① 首页 hero 区有显著「开单」按钮，跳转到销售�
   seedShop(ctx);
   const html = home.render(ctx, home.init(ctx));
 
-  // 4 个原有指标完整保留
-  assert.ok(/今日应收/.test(html), '应有今日应收');
-  assert.ok(/今日开单/.test(html), '应有今日开单');
+  // 4 个原有指标完整保留（手机/电脑统一为「今日营收/今日单数/今日毛利/预警款数」）
+  assert.ok(/今日营收/.test(html), '应有今日营收');
+  assert.ok(/今日单数/.test(html), '应有今日单数');
   assert.ok(/今日毛利/.test(html), '应有今日毛利');
   assert.ok(/预警款数/.test(html), '应有预警款数');
 

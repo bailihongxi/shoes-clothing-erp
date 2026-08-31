@@ -236,4 +236,43 @@
 
   /* 趋势图更大 */
   .trend-chart { height: 240px; }
+
+  /* 手机版首页 UI 应用到桌面：banner + 经营概览 2x2 + 快捷入口（文字与手机版一致） */
+  .home-top { display: block; }
+  .home-top .overview-head { padding: 6px 0 12px; }
+  .home-top .stat-grid.home-stat-2x2 {
+    grid-template-columns: 1fr 1fr 0.85fr;
+    gap: 14px;
+    align-items: stretch;
+  }
+  .home-stat-2x2 .stat-card {
+    padding: 18px 20px;
+    min-height: 104px;
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .home-stat-2x2 .stat-card .label { font-size: 13px; color: var(--c-text-sub); margin-bottom: 6px; line-height: 1.1; }
+  .home-stat-2x2 .stat-card .value { font-size: 30px; font-weight: 700; line-height: 1.1; }
+  .home-stat-2x2 .stat-card .value.profit { color: var(--c-success); }
+  .home-stat-2x2 .stat-card .value.danger { color: var(--c-danger); }
+  .home-stat-2x2 .home-sale-btn.home-sale-row {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    width: 100%;
+    min-width: 0;
+    min-height: calc(104px * 2 + 14px);
+    padding: 24px 12px;
+    border-radius: var(--radius-lg);
+    gap: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .home-stat-2x2 .home-sale-btn .ico { font-size: 40px; }
+  .home-stat-2x2 .home-sale-btn .t { font-size: 24px; margin-top: 6px; letter-spacing: 2px; }
+  .home-stat-2x2 .home-sale-btn .s { font-size: 13px; }
 }
