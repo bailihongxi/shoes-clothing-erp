@@ -70,6 +70,12 @@
 <!-- ============ 业务引擎（依赖 core/* + store/*，用 writeLog 兜底延迟读 ERP.repo） ============ -->
 <script src="js/core/engine.js"></script>
 
+<!-- ============ 条码渲染/标签/蓝牙打印（界面层依赖 render/label/printBt，须先加载） ============ -->
+<script src="vendor/zxing.min.js" defer></script>
+<script src="js/barcode/render.js"></script>
+<script src="js/barcode/label.js"></script>
+<script src="js/barcode/print-bt.js"></script>
+
 <!-- ============ 界面层 ============ -->
 <script src="js/ui/router.js"></script>
 <script src="js/ui/components.js"></script>
@@ -85,12 +91,8 @@
 <script src="js/ui/page-setting.js"></script>
 <script src="js/ui/page-mine.js"></script>
 
-<!-- ============ 条码能力 ============ -->
-<script src="vendor/zxing.min.js" defer></script>
-<script src="js/barcode/render.js"></script>
-<script src="js/barcode/label.js"></script>
+<!-- ============ 条码扫描（依赖界面层 components） ============ -->
 <script src="js/barcode/scan.js"></script>
-<script src="js/barcode/print-bt.js"></script>
 
 <!-- ============ 启动 ============ -->
 <script src="js/app.js"></script>

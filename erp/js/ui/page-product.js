@@ -335,7 +335,13 @@
     state.tab = 'list';
     state.form = emptyForm();
     if (andPrint && ERP.pages && ERP.pages.product && ERP.pages.product.openPrint) {
-      ERP.pages.product.openPrint(ctx, state, res.styleCode);
+      // 打印属于附加动作：即使打印失败，保存本身已成功——捕获异常避免误报「操作失败」且页面已切回列表
+      try {
+        ERP.pages.product.openPrint(ctx, state, res.styleCode);
+      } catch (e) {
+        if (typeof console !== 'undefined') console.error('打印标签失败：', e);
+        ui.toast('已保存，但打印标签失败：' + (e && e.message ? e.message : e), 'err');
+      }
     }
     return true;
   }

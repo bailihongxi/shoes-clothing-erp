@@ -193,3 +193,65 @@ test('分页：每页上限 300 条', () => {
   const rows = html.split('<tr>').length - 1;
   assert.ok(rows <= 301, '单页行数应 ≤300（含表头），实际 ' + rows);
 });
+
+/* ========== 问题4：保存并打印 buildLabelData 报错 + 保存后不刷新 ========== */
+
+const fs4 = require('node:fs');
+const path4 = require('node:path');
+
+test('问题4：index.html 加载顺序——barcode/label.js 须在 page-product.js 之前（修复 buildLabelData 为 null）', () => {
+  const html = fs4.readFileSync(path4.join(__dirname, '..', 'index.html'), 'utf8');
+  const srcs = Array.from(html.matchAll(/<script\s+src="([^"]+)"/g), (m) => m[1]);
+  const labelIdx = srcs.indexOf('js/barcode/label.js');
+  const renderIdx = srcs.indexOf('js/barcode/render.js');
+  const prodIdx = srcs.indexOf('js/ui/page-product.js');
+  assert.ok(labelIdx >= 0 && renderIdx >= 0 && prodIdx >= 0, '三个脚本都应存在');
+  assert.ok(labelIdx < prodIdx, 'label.js 应在 page-product.js 之前加载（否则 buildLabelData 为 null）');
+  assert.ok(renderIdx < prodIdx, 'render.js 应在 page-product.js 之前加载（否则 render.svg 为 null）');
+});
+
+test('问题4：保存并打印成功后清空表单并回到列表（不残留上次输入）', () => {
+  const { ctx, state } = fresh();
+  const g = (globalThis.ERP = globalThis.ERP || {});
+  g.pages = g.pages || {};
+  g.pages.product = g.pages.product || {};
+  let printedCode = null;
+  g.pages.product.openPrint = function (c, s, code) { printedCode = code; };
+
+  state.tab = 'new';
+  state.form.name = '跑鞋';
+  state.form.category = '鞋';
+  state.form.colors = ['白'];
+  state.form.sizes = ['40'];
+  state.form.costPrice = '60';
+  state.form.salePrice = '159';
+  const r = page.actions['save-print'](ctx, state);
+  assert.strictEqual(r, true, '保存并打印应成功');
+  assert.ok(printedCode, '应调用 openPrint 并传入新款号，实际 ' + printedCode);
+  assert.strictEqual(state.tab, 'list', '保存后应回到列表（页面随之刷新）');
+  assert.strictEqual(state.form.name, '', '表单应清空，不残留上次输入');
+  assert.strictEqual(ctx.data.products.length, 1, '商品应已创建');
+});
+
+test('问题4：打印失败不应误报「操作失败」，保存成功且状态已清空（try-catch 兜底）', () => {
+  const { ctx, state } = fresh();
+  const g = (globalThis.ERP = globalThis.ERP || {});
+  g.pages = g.pages || {};
+  g.pages.product = g.pages.product || {};
+  // 模拟打印环节抛异常（如 buildLabelData 依赖缺失）
+  g.pages.product.openPrint = function () {
+    throw new Error("Cannot read properties of null (reading 'buildLabelData')");
+  };
+
+  state.tab = 'new';
+  state.form.name = '凉鞋';
+  state.form.category = '鞋';
+  state.form.colors = ['黑'];
+  state.form.sizes = ['39'];
+  state.form.costPrice = '30';
+  state.form.salePrice = '79';
+  assert.doesNotThrow(() => page.actions['save-print'](ctx, state), '打印失败不应让整个保存抛异常');
+  assert.strictEqual(ctx.data.products.length, 1, '商品应已保存');
+  assert.strictEqual(state.tab, 'list', '保存成功应回到列表');
+  assert.strictEqual(state.form.name, '', '表单应清空');
+});

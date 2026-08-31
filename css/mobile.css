@@ -51,24 +51,42 @@
   .home-sale-btn .t { font-size: 16px; letter-spacing: 1px; }
   .home-sale-btn .s { font-size: 11px; }
 
-  /* 首页 stat 3 列（2,2,1）：列1 应收/开单，列2 毛利/预警，列3 放大开单按钮跨 2 行 */
-  .home-top .stat-grid.home-stat-3col {
-    grid-template-columns: 1fr 1fr 0.92fr;
-    gap: 12px;
-    grid-auto-rows: 1fr;
+  /* 首页 stat 2x2 + 右侧放大「开单」按钮（跨 2 行） */
+  .home-top .stat-grid.home-stat-2x2 {
+    grid-template-columns: 1fr 1fr 0.85fr;
+    gap: 10px;
+    align-items: stretch;
   }
-  .home-stat-3col .home-sale-btn.home-sale-col {
-    grid-row: span 2;
+  .home-stat-2x2 .stat-card {
+    padding: 10px 12px;
+    min-height: 70px;
+    max-height: 84px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .home-stat-2x2 .stat-card .label { font-size: 12px; color: var(--c-text-sub); margin-bottom: 4px; line-height: 1.1; }
+  .home-stat-2x2 .stat-card .value { font-size: 19px; font-weight: 700; line-height: 1.1; }
+  .home-stat-2x2 .stat-card .value.profit { color: var(--c-success); }
+  .home-stat-2x2 .stat-card .value.danger { color: var(--c-danger); }
+  .home-stat-2x2 .home-sale-btn.home-sale-row {
+    grid-column: 3;
+    grid-row: 1 / span 2;
     width: 100%;
     min-width: 0;
-    min-height: 100%;
-    padding: 16px 10px;
+    min-height: calc(70px * 2 + 10px);
+    padding: 18px 8px;
     border-radius: var(--radius-lg);
-    gap: 5px;
+    gap: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
-  .home-stat-3col .home-sale-btn .ico { font-size: 34px; }
-  .home-stat-3col .home-sale-btn .t { font-size: 21px; margin-top: 6px; letter-spacing: 2px; }
-  .home-stat-3col .home-sale-btn .s { font-size: 12px; }
+  .home-stat-2x2 .home-sale-btn .ico { font-size: 30px; }
+  .home-stat-2x2 .home-sale-btn .t { font-size: 19px; margin-top: 4px; letter-spacing: 2px; }
+  .home-stat-2x2 .home-sale-btn .s { font-size: 12px; }
 
   /* v2 stat-card 在手机上更紧凑 */
   .stat-card { padding: 14px; min-height: 88px; }
