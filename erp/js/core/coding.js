@@ -3,8 +3,9 @@
  *
  * 款号 styleCode = 类别字母 + 3 位流水          例：X001
  * SKU id        = 款号 + 2 位色序 + 尺码码      例：X001 01 38 → X0010138
- * 条码          = 款号（同款所有色码共用）       例：X001
- *               （开启「一码一色码」后 = SKU id）
+ * 条码          = 产品类型(1 字母) + 颜色(1 字母) + 四位随机码   例：XW1234
+ *               同一「款 + 色」的所有号码共用同一条码（同款同色可贴同一个条码）
+ *               （开启「一码一色码」后 = SKU id，一个色码一个条码）
  */
 (function (root, factory) {
   var isNode = typeof module !== 'undefined' && module.exports;
@@ -97,6 +98,38 @@
     return oneCode ? skuId : styleCode;
   };
 
+  /** 颜色 → 单字母码（用于条码中的「颜色」段；未知颜色按哈希兜底） */
+  coding.colorCode = function colorCode(color) {
+    var map = {
+      '白': 'W', '黑': 'K', '灰': 'H', '米白': 'M', '棕': 'Z', '卡其': 'Q',
+      '红': 'R', '蓝': 'B', '绿': 'G', '粉': 'P', '杏': 'X', '银': 'S',
+      '黄': 'Y', '紫': 'U', '橙': 'O'
+    };
+    var c = util.cleanColor(color);
+    if (map[c]) return map[c];
+    var h = 0;
+    for (var i = 0; i < c.length; i++) h = (h * 31 + c.charCodeAt(i)) >>> 0;
+    return String.fromCharCode(65 + (h % 26));
+  };
+
+  /**
+   * 生成「产品类型 + 颜色 + 四位随机码」条码（问题3 新规则）
+   * - 产品类型：类别前缀（X/F/K/P/B/O），1 字母
+   * - 颜色：单字母码，1 字母
+   * - 四位随机码：0000~9999，保证与 taken 集合不冲突
+   * 同一「款 + 色」共用同一份条码（同款同色可贴同一个条码）。
+   */
+  coding.genColorBarcode = function genColorBarcode(category, color, settings, taken) {
+    var prefix = coding.prefixOf(category, settings); // 产品类型（1 字母）
+    var cc = coding.colorCode(color);                // 颜色（1 字母）
+    var code;
+    do {
+      var rand = ('000' + Math.floor(Math.random() * 10000)).slice(-4);
+      code = (prefix + cc + rand).toUpperCase();
+    } while (taken && taken[code]);
+    return code;
+  };
+
   /** 查找同款下「颜色 + 尺码」是否已存在 */
   coding.findSku = function findSku(styleCode, color, size, skus) {
     var c = util.cleanColor(color).toUpperCase();
@@ -140,7 +173,38 @@
     var newCount = 0;
     var virtualSkus = data.skus.slice();
 
+    // 已占用条码集合（避免新生成与既有 SKU / 供应商吊牌码冲突）
+    var taken = Object.create(null);
+    (data.skus || []).forEach(function (s) {
+      if (s.barcode) taken[String(s.barcode).toUpperCase()] = true;
+    });
+    (data.products || []).forEach(function (p) {
+      if (p.barcode) taken[String(p.barcode).toUpperCase()] = true;
+    });
+    // 同一「款 + 色」复用同一份条码
+    var oneCodePerSku = !!(settings && settings.oneCodePerSku);
+    var colorBarcodeOf = {};
+    var firstColorBarcode = null;
+
     colors.forEach(function (color) {
+      var cleanC = util.cleanColor(color).toUpperCase();
+      // 复用既有（款+色）条码
+      var existing = virtualSkus.find(function (s) {
+        return s.styleCode === styleCode && util.cleanColor(s.color).toUpperCase() === cleanC && s.barcode;
+      });
+      var colorBarcode;
+      if (existing) {
+        colorBarcode = existing.barcode;
+        colorBarcodeOf[cleanC] = colorBarcode;
+      } else if (colorBarcodeOf[cleanC]) {
+        colorBarcode = colorBarcodeOf[cleanC];
+      } else {
+        colorBarcode = coding.genColorBarcode(category, color, settings, taken);
+        taken[colorBarcode.toUpperCase()] = true;
+        colorBarcodeOf[cleanC] = colorBarcode;
+      }
+      if (!firstColorBarcode) firstColorBarcode = colorBarcode;
+
       var colorSeq = coding.nextColorSeq(styleCode, color, virtualSkus);
       sizes.forEach(function (rawSize) {
         var size = util.displaySize(rawSize);
@@ -157,18 +221,19 @@
             return s.id === skuId;
           });
         }
-        var barcode = coding.genBarcode(styleCode, skuId, settings);
+        // 「一码一色码」开关打开时，条码退化为一个色码一个条码（= SKU id）
+        var rowBarcode = oneCodePerSku ? skuId : colorBarcode;
         if (exist) {
           dupCount += 1;
           rows.push({
             color: color, size: size, sizeCode: sizeCode, colorSeq: colorSeq,
-            skuId: skuId, barcode: barcode, exists: true, conflict: false
+            skuId: skuId, barcode: rowBarcode, exists: true, conflict: false
           });
         } else {
           newCount += 1;
           rows.push({
             color: color, size: size, sizeCode: sizeCode, colorSeq: colorSeq,
-            skuId: skuId, barcode: barcode, exists: false, conflict: conflictN > 0
+            skuId: skuId, barcode: rowBarcode, exists: false, conflict: conflictN > 0
           });
           virtualSkus.push({
             id: skuId, styleCode: styleCode, color: color,
@@ -193,7 +258,7 @@
       styleCode: styleCode,
       isNewStyle: isNewStyle,
       reusedStyleCode: same ? same.styleCode : null,
-      barcode: coding.genBarcode(styleCode, coding.genSkuId(styleCode, 1, sizes[0] || ''), settings),
+      barcode: firstColorBarcode,
       rows: rows,
       newCount: newCount,
       duplicateCount: dupCount
@@ -228,7 +293,8 @@
         brand: util.cleanText(input.brand || ''),
         costPrice: util.parseMoney(input.costPrice),
         salePrice: util.parseMoney(input.salePrice),
-        barcode: pv.styleCode,
+        // 款级代表条码 = 首个颜色的条码（类型+颜色+四位随机码）
+        barcode: pv.barcode || pv.styleCode,
         barcodeSource: schema.BARCODE_SOURCE.SYSTEM,
         barcodeAt: now,
         threshold: threshold,
@@ -316,13 +382,28 @@
       return s.styleCode === styleCode;
     });
     var idMap = {};
+    // 改名后按「款 + 色」重新生成条码，同色复用
+    var takenRename = Object.create(null);
+    data.skus.forEach(function (s) {
+      if (s.barcode) takenRename[String(s.barcode).toUpperCase()] = true;
+    });
+    var oneCode = !!(ctx.settings && ctx.settings.oneCodePerSku);
+    var colorBc = {};
+    var firstBc = null;
     mySkus.forEach(function (sku) {
       var suffix = String(sku.id).slice(oldPrefix.length);
       var newId = newCode + suffix;
       idMap[sku.id] = newId;
       sku.id = newId;
       sku.styleCode = newCode;
-      sku.barcode = ctx.settings && ctx.settings.oneCodePerSku ? newId : newCode;
+      var cc = util.cleanColor(sku.color).toUpperCase();
+      if (!colorBc[cc]) {
+        colorBc[cc] = coding.genColorBarcode(product.category, sku.color, ctx.settings, takenRename);
+        takenRename[colorBc[cc].toUpperCase()] = true;
+      }
+      if (!firstBc) firstBc = colorBc[cc];
+      // 一码一色码：条码 = 新 SKU id；否则同款同色共用色条码
+      sku.barcode = oneCode ? newId : colorBc[cc];
       ctx.touch('skus', sku);
     });
 
@@ -353,7 +434,8 @@
 
     product.styleCode = newCode;
     if (product.barcodeSource !== schema.BARCODE_SOURCE.SUPPLIER || !product.barcode) {
-      product.barcode = newCode;
+      // 系统生成码随款重排：取首个颜色的新条码作为款级代表码
+      product.barcode = firstBc || newCode;
     }
     ctx.touch('products', product);
 

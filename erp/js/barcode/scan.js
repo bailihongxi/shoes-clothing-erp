@@ -38,14 +38,20 @@
     var c = norm(code);
     if (!c) return { found: false, code: c };
     var products = ctx.data.products || [];
-    // ① 条码精确匹配
+    var sku = null;
+    // ① 条码精确匹配：先查款级条码（款号），再查色码条码（同款同色共用一份）
     var p = products.find(function (x) {
       return String(x.barcode || '').toUpperCase() === c;
     });
+    if (!p) {
+      sku = (ctx.data.skus || []).find(function (s) {
+        return String(s.barcode || '').toUpperCase() === c;
+      });
+      if (sku) p = ctx.getProduct(sku.styleCode);
+    }
     // ② 款号匹配
     if (!p) p = ctx.getProduct(c);
     // ③ 色码 id 匹配（再反查款）
-    var sku = null;
     if (!p) {
       sku = ctx.getSku(c);
       if (sku) p = ctx.getProduct(sku.styleCode);
@@ -74,7 +80,10 @@
       sizes: m.sizes,
       cells: m.cells,
       totalStock: totalStock,
-      allZero: totalStock <= 0
+      allZero: totalStock <= 0,
+      colorCount: m.colors.length,
+      sizeCount: m.sizes.length,
+      summary: '共 ' + m.colors.length + ' 色 ' + m.sizes.length + ' 个号码在库'
     };
   };
 
@@ -219,6 +228,7 @@
     }).join('');
     var body = '<div class="small muted mb8">' + util.escapeHtml(c.product.name) + ' · 售价 ' + ui.money(c.product.salePrice) +
       (c.allZero ? ' <b style="color:#dc2626">（整款 0 库存）</b>' : '') + '</div>' +
+      '<div class="small" style="margin-bottom:6px"><b>' + util.escapeHtml(c.summary) + '</b></div>' +
       '<table class="matrix"><thead><tr><th>颜色\\尺码</th>' + c.sizes.map(function (s) { return '<th>' + util.escapeHtml(s) + '</th>'; }).join('') + '</tr></thead><tbody>' + rows + '</tbody></table>';
     ui.modal({
       title: '商品卡 · ' + util.escapeHtml(c.product.styleCode),
