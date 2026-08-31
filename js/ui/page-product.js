@@ -13,13 +13,14 @@
     ERP.repo || (isNode ? require('../store/repo.js') : null),
     ERP.render || (isNode ? require('../barcode/render.js') : null),
     ERP.label || (isNode ? require('../barcode/label.js') : null),
+    ERP.excel || (isNode ? require('../core/excel.js') : null),
     ERP
   );
   if (isNode) module.exports = mod;
   root.ERP = root.ERP || {};
   root.ERP.pages = root.ERP.pages || {};
   root.ERP.pages.product = mod;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (coding, ui, util, schema, repo, render, label, ERP) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (coding, ui, util, schema, repo, render, label, excel, ERP) {
   'use strict';
 
   var esc = util.escapeHtml;
@@ -244,6 +245,38 @@
         state.csvResult = res;
         repo.log(ctx, 'CSV 导入', '新增 ' + res.created + ' 款 / ' + res.skus + ' 个色码');
         if (res.errors.length === 0) state.csvText = '';
+      },
+
+      /** 选择文件直接导入：CSV 读取文本，Excel(xlsx/xls) 解析首个工作表并转为 CSV 填入粘贴框 */
+      'pick-import-file': function (ctx, state, el) {
+        if (typeof window === 'undefined' || !window.FileReader) return false; // Node 测试不执行
+        var file = el && el.files && el.files[0];
+        if (!file) return false;
+        var name = String(file.name || '').toLowerCase();
+        var isCsv = name.slice(-4) === '.csv' || String(file.type || '').indexOf('csv') >= 0;
+        var reader = new FileReader();
+        var finish = function (text) {
+          state.csvText = text;
+          if (window.ERP && ERP.app && ERP.app.render) ERP.app.render();
+          ui.toast('已读取「' + file.name + '」，请确认后点「开始导入」', 'ok');
+        };
+        reader.onload = function () {
+          try {
+            if (isCsv) {
+              finish(String(reader.result || ''));
+            } else {
+              finish(excel.rowsToCsv(excel.parse(reader.result)));
+            }
+          } catch (e) {
+            ui.toast('解析文件失败：' + (e && e.message ? e.message : e), 'err');
+          }
+        };
+        reader.onerror = function () {
+          ui.toast('读取文件失败，请重试', 'err');
+        };
+        if (isCsv) reader.readAsText(file);
+        else reader.readAsArrayBuffer(file);
+        return false; // 异步读取完成后手动 render，不触发立即重渲染
       },
 
       'download-template': function (ctx, state, el) {
@@ -591,7 +624,10 @@
     var h = '<div class="page-head"><h2>CSV 批量导入</h2>' +
       '<span class="desc">表头需含：名称、类别、颜色、号码，可选修：进价、售价、品牌、款号、条码</span></div>';
     h += '<div class="card">' +
-      '<div class="field"><label>粘贴 CSV 内容（Excel 另存为 CSV 后全选复制）</label>' +
+      '<div class="field"><label>① 直接选择文件导入（支持 CSV / Excel .xlsx .xls）</label>' +
+      '<input class="input" type="file" accept=".csv,.xlsx,.xls,text/csv" data-change="pick-import-file">' +
+      '<div class="small muted mt4">选择本地 CSV 或 Excel 文件，内容将自动填入下方粘贴框，可修改后点「开始导入」。</div></div>' +
+      '<div class="field"><label>② 或粘贴 CSV 内容（Excel 另存为 CSV 后全选复制）</label>' +
       '<textarea class="input" data-input="csv-text" style="min-height:160px" placeholder="名称,类别,颜色,号码,进价,售价">' +
       esc(state.csvText) + '</textarea></div>' +
       '<div class="row">' +
