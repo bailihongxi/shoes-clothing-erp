@@ -406,6 +406,168 @@
     return { ok: true, doc: doc };
   };
 
+  /**
+   * 销售退换（退旧 + 换新）：直接与原销售单链接
+   * - 退货部分：复用 refundSale 红冲原单并入库，doc.refNo = 原单号；
+   * - 换货部分（可选）：把新商品作为一张销售单 saveSale，doc.exchangeOf = 原单号，
+   *   并与退货单互为 exchangeLinked，实现「退换货 ↔ 原销售单」双向追溯。
+   * 账面差额：退货红冲 −Vr，新销售 +Vp，净额 = Vp − Vr，与顾客实际收付差价一致。
+   *
+   * @param input {
+   *   originalNo,
+   *   returns: [{skuId, qty}],        // 从原单退/换出的商品（必填，至少一行 >0）
+   *   replacements: [{skuId, qty, price(元/分)}], // 换新商品（换货时填）
+   *   date, note, payments:[{method, amount}] // 换新销售单收款，缺省按全款现金
+   * }
+   */
+  engine.exchange = function exchange(ctx, input) {
+    input = input || {};
+    var original = ctx.getDoc('sales', input.originalNo);
+    if (!original) return err('原销售单不存在：' + input.originalNo);
+    if (original.voided) return err('原单已作废，不能退换');
+    if (original.type === schema.DOC.REFUND) return err('退货单不能再退换');
+
+    // 计算原单每行的「还可退」数量（已退部分要扣掉）
+    var returnedOf = {};
+    (ctx.data.sales || []).forEach(function (s) {
+      if (s.type !== schema.DOC.REFUND || s.voided) return;
+      if (s.refNo !== original.no) return;
+      s.items.forEach(function (ri) {
+        returnedOf[ri.skuId] = (returnedOf[ri.skuId] || 0) + ri.qty;
+      });
+    });
+
+    var pick = {};
+    (input.returns || []).forEach(function (ri) {
+      var q = parseInt(ri.qty, 10);
+      if (q > 0) pick[ri.skuId] = q;
+    });
+
+    var returnItems = [];
+    var anyReturn = false;
+    var pickedFullyReturned = false; // 用户选了该色码，但原单该行已全部退完
+    for (var i = 0; i < original.items.length; i++) {
+      var oi = original.items[i];
+      if (pick[oi.skuId] === undefined) continue; // 部分退：未选中的行不退
+      var maxQty = oi.qty - (returnedOf[oi.skuId] || 0);
+      if (maxQty <= 0) { pickedFullyReturned = true; continue; }
+      var rq = Math.min(pick[oi.skuId], maxQty);
+      if (rq <= 0) { pickedFullyReturned = true; continue; }
+      anyReturn = true;
+      returnItems.push({
+        skuId: oi.skuId,
+        styleCode: oi.styleCode,
+        color: oi.color,
+        size: oi.size,
+        qty: rq,
+        price: oi.price || 0,
+        costSnapshot: oi.costSnapshot || 0,
+        type: schema.DOC.SALE,
+        giftReason: null
+      });
+    }
+    if (!anyReturn) {
+      if (pickedFullyReturned) return err('所选商品已无可退数量');
+      return err('请先选择要退/换的商品');
+    }
+
+    // 解析换新商品（价格支持「元」字符串或「分」数字）。
+    // 注意：priceFen 仅用于本函数内的校验与差额计算；传给 saveSale 的必须是「元」表示，
+    // 由 saveSale 内部统一 parseMoney，避免重复转换把「分」当「元」放大 100 倍。
+    var replItems = (input.replacements || []).filter(function (it) {
+      return it && it.skuId && parseInt(it.qty, 10) > 0;
+    }).map(function (it) {
+      var sku = ctx.getSku(it.skuId);
+      if (!sku) return { error: '色码不存在：' + it.skuId };
+      var product = ctx.getProduct(sku.styleCode);
+      var priceFen = util.parseMoney(it.price);
+      if (priceFen < 0) return { error: '售价不能为负' };
+      return {
+        skuId: sku.id,
+        styleCode: sku.styleCode,
+        color: sku.color,
+        size: sku.size,
+        qty: parseInt(it.qty, 10),
+        priceFen: priceFen,
+        costSnapshot: sku.costPrice !== undefined && sku.costPrice !== null ? sku.costPrice
+          : (product ? product.costPrice || 0 : 0),
+        type: schema.DOC.SALE,
+        giftReason: null
+      };
+    });
+    var badRepl = replItems.filter(function (x) { return x.error; });
+    if (badRepl.length) return err(badRepl.map(function (x) { return x.error; }).join('；'));
+
+    // ① 先生成退货单（红冲原单、入库、冲减原单已收/欠款）
+    var refundRes = engine.refundSale(ctx, {
+      originalNo: original.no,
+      items: returnItems.map(function (it) {
+        return { skuId: it.skuId, qty: it.qty };
+      }),
+      note: input.note
+    });
+    if (!refundRes.ok) return refundRes; // 退货失败直接透传原因，不产生半成品
+    var refundDoc = refundRes.doc;
+
+    // ② 若有换新商品，生成销售单（与原单/退货单双向链接）
+    var saleDoc = null;
+    if (replItems.length) {
+      var Vp = replItems.reduce(function (t, it) { return t + it.priceFen * it.qty; }, 0);
+      var payments = (input.payments && input.payments.length)
+        ? input.payments.map(function (p) {
+          return { method: p.method, amount: util.parseMoney(p.amount) };
+        })
+        : [{ method: 'cash', amount: util.fenToYuan(Vp) }]; // 默认按全款现金记账，差额由退货红冲冲抵
+
+      // 转回「元」交给 saveSale（内部再 parseMoney），避免重复转换
+      var saleItems = replItems.map(function (it) {
+        return {
+          skuId: it.skuId,
+          styleCode: it.styleCode,
+          color: it.color,
+          size: it.size,
+          qty: it.qty,
+          price: util.fenToYuan(it.priceFen),
+          costSnapshot: it.costSnapshot,
+          type: schema.DOC.SALE,
+          giftReason: null
+        };
+      });
+
+      var saleRes = engine.saveSale(ctx, {
+        date: input.date || util.today(),
+        partnerId: original.partnerId || null,
+        partnerName: original.partnerName || '',
+        items: saleItems,
+        discount: 0,
+        payments: payments,
+        note: (input.note ? input.note + '；' : '') + '换货（红冲 ' + original.no + '）'
+      });
+      if (!saleRes.ok) {
+        // 极少发生（退货已成功、库存已回补），稳妥回滚刚生成的退货单，避免半成品
+        engine.voidSale(ctx, refundDoc.no);
+        return saleRes;
+      }
+      saleDoc = saleRes.doc;
+      saleDoc.exchangeOf = original.no;
+      saleDoc.exchangeLinked = refundDoc.no;
+      ctx.touch('sales', saleDoc);
+    }
+
+    // 双向链接：退货单也标注 exchangeOf / 关联销售单
+    refundDoc.exchangeOf = original.no;
+    refundDoc.exchangeLinked = saleDoc ? saleDoc.no : null;
+    ctx.touch('sales', refundDoc);
+
+    var Vr = returnItems.reduce(function (t, it) { return t + (it.price || 0) * it.qty; }, 0);
+    var VpTotal = replItems.reduce(function (t, it) { return t + (it.priceFen || 0) * it.qty; }, 0);
+    writeLog(ctx, '销售退换',
+      '原单 ' + original.no + '：退 ' + util.fmtYuan(Vr) + ' / ' +
+      (saleDoc ? ('换 ' + util.fmtYuan(VpTotal) + '，实收差价 ' + util.fmtYuan(VpTotal - Vr)) : '仅退货'));
+
+    return { ok: true, refund: refundDoc, sale: saleDoc, net: VpTotal - Vr };
+  };
+
   /** 修改进货单：仅未结清（有欠款）的单可改 */
   engine.updatePurchase = function updatePurchase(ctx, no, input) {
     var doc = ctx.getDoc('purchases', no);

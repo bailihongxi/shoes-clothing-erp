@@ -149,6 +149,7 @@
         { page: 'purchase', icon: '📥', text: '进货' },
         { page: 'product', icon: '📦', text: '商品' },
         { page: 'inventory', icon: '📋', text: '库存' },
+        { page: 'exchange', icon: '🔁', text: '退换' },
         { page: 'account', icon: '💰', text: '记账' },
         { page: 'report', icon: '📈', text: '报表' }
       ]);
