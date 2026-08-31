@@ -158,7 +158,7 @@
   }
 
   async function afterAction() {
-    await commit();
+    await app.commit();
     render();
   }
 
