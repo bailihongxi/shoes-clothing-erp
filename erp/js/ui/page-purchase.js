@@ -150,16 +150,20 @@
           ui.toast(res.error, 'err');
           return false;
         }
+        // 统计本次入库件数，明确告知用户「已加入库存」
+        var qty = util.sum(res.doc.items, function (it) {
+          return it.qty;
+        });
+        var debtTip = res.doc.debt > 0
+          ? '，欠款 ' + ui.money(res.doc.debt)
+          : '，已付清';
         ui.toast(
-          '已保存 ' + res.doc.no + '，应付 ' + ui.money(res.doc.debt),
-          res.doc.debt > 0 ? 'ok' : 'ok'
+          '✅ 进货单 ' + res.doc.no + ' 已保存，已入库 ' + qty + ' 件' + debtTip + '，库存已更新',
+          'ok'
         );
         state.tab = 'list';
         state.form = emptyForm();
-        if (ERP.pages && ERP.pages.product && ERP.pages.product.openPrint) {
-          // 进货保存后提示打标签（Sprint 7 提供打印页）
-          state.lastSavedNo = res.doc.no;
-        }
+        state.lastSavedNo = res.doc.no;
         return true;
       },
 

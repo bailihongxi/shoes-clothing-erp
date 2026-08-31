@@ -62,20 +62,19 @@
 
   function bindGlobalEvents() {
     document.addEventListener('click', function (ev) {
-      var el = ev.target && ev.target.closest ? ev.target.closest('[data-act]') : null;
-      if (!el) return;
-      var name = el.getAttribute('data-act');
-      var handled = dispatch(name, el, ev);
-      if (handled !== false) {
-        afterAction();
-      }
+      actHandler(ev, function (el) {
+        return el.getAttribute('data-act');
+      }, function (name, el, ev2) {
+        return dispatch(name, el, ev2);
+      });
     });
 
     document.addEventListener('change', function (ev) {
-      var el = ev.target && ev.target.closest ? ev.target.closest('[data-change]') : null;
-      if (!el) return;
-      var name = el.getAttribute('data-change');
-      if (dispatch(name, el, ev) !== false) afterAction();
+      actHandler(ev, function (el) {
+        return el.getAttribute('data-change');
+      }, function (name, el, ev2) {
+        return dispatch(name, el, ev2);
+      });
     });
 
     document.addEventListener('input', function (ev) {
@@ -135,6 +134,21 @@
         afterAction();
       }
     });
+
+    // 安全网：页面被隐藏 / 卸载前，把尚未落库的脏数据最佳努力写入 IndexedDB，
+    // 避免「刚保存就刷新/切走」导致的数据丢失（IndexedDB 事务在页面卸载时可能被中断）。
+    function flushOnHide() {
+      if (!app.db || !app.ctx) return;
+      var pending = app.ctx.dirtyKeys && app.ctx.dirtyKeys().length;
+      if (!pending) return;
+      app.commit().catch(function (e) {
+        if (typeof console !== 'undefined') console.error('页面卸载前落库失败', e);
+      });
+    }
+    document.addEventListener('pagehide', flushOnHide);
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') flushOnHide();
+    });
   }
 
   /** 找到动作处理函数：页面 → 全局 */
@@ -149,6 +163,29 @@
     return fn(app.ctx, state, el, ev);
   }
 
+  /**
+   * 统一的动作派发：先执行动作，再「可靠落库 + 重渲染」。
+   * - 动作抛错时给出明确错误提示，而不是整页静默无反应；
+   * - afterAction 内部 await 落库，避免保存后因页面刷新/关闭而丢失数据。
+   */
+  function actHandler(ev, getName, run) {
+    var el = ev.target && ev.target.closest ? ev.target.closest('[data-act],[data-change]') : null;
+    if (!el) return;
+    var name = getName(el);
+    if (!name) return;
+    var handled = true;
+    try {
+      handled = run(name, el, ev);
+    } catch (err) {
+      if (typeof console !== 'undefined') console.error('动作执行出错：' + name, err);
+      ui().toast('操作失败：' + (err && err.message ? err.message : err), 'err');
+      return;
+    }
+    if (handled !== false) {
+      afterAction();
+    }
+  }
+
   function stateOf(page) {
     if (!page) return {};
     if (!app.pageStates[page.name]) {
@@ -157,8 +194,18 @@
     return app.pageStates[page.name];
   }
 
+  /**
+   * 动作完成后：先把脏数据落库（IndexedDB），成功后再重渲染。
+   * 落库失败会明确提示，避免「看起来保存了其实没存上」的假象。
+   */
   async function afterAction() {
-    await app.commit();
+    try {
+      await app.commit();
+    } catch (err) {
+      if (typeof console !== 'undefined') console.error('落库失败', err);
+      ui().toast('保存失败：数据未能写入本地存储（' + (err && err.message ? err.message : err) + '）', 'err');
+      return;
+    }
     render();
   }
 
