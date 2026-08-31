@@ -460,7 +460,10 @@
     var vr = 0;
     original.items.forEach(function (it) {
       var maxQty = it.qty - (ret[it.skuId] || 0);
-      var q = state.exchReturnQty[it.skuId] !== undefined ? Math.min(state.exchReturnQty[it.skuId], maxQty > 0 ? maxQty : 0) : 0;
+      // 退几件默认值 = 可退数（maxQty），退货额应与默认输入框内容关联；state 无记录时按默认值计
+      var q = state.exchReturnQty[it.skuId] !== undefined
+        ? Math.min(state.exchReturnQty[it.skuId], maxQty > 0 ? maxQty : 0)
+        : (maxQty > 0 ? maxQty : 0);
       vr += (it.price || 0) * (q > 0 ? q : 0);
     });
     var net = vp - vr;

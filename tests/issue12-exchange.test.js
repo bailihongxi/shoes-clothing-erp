@@ -293,15 +293,15 @@ test('问题3：退几件输入（input 事件、不 blur）即时写入 state �
   page.actions['select-original'](ctx, state, elAttr({ 'data-no': original.no }));
   page.actions['goto-exchange'](ctx, state);
 
-  // 初始：未输入，退 0 件 → 退货额 ¥0.00
+  // 初始：未输入，退几件默认值=可退数（白38×2 + 黑39×1）→ 退货额 ¥387.00（默认输入已关联退货额）
   let html = page.render(ctx, state);
-  assert.ok(/退货额[\s\S]*?¥0\.00/.test(html), '初始退货额应为 ¥0.00');
+  assert.ok(/退货额[\s\S]*?¥387\.00/.test(html), '初始退货额应关联默认输入（¥387.00）');
 
-  // 输入「2」——仅触发 input 事件（data-change action），不依赖 blur/change
-  page.actions['exch-return-qty'](ctx, state, elValue({ 'data-sku': 'X0010138' }, 2));
-  assert.strictEqual(state.exchReturnQty['X0010138'], 2, '输入即写回 state.exchReturnQty');
+  // 输入「1」——仅触发 input 事件（data-change action），不依赖 blur/change
+  page.actions['exch-return-qty'](ctx, state, elValue({ 'data-sku': 'X0010138' }, 1));
+  assert.strictEqual(state.exchReturnQty['X0010138'], 1, '输入即写回 state.exchReturnQty');
 
-  // 重渲染后退货额实时联动：2 件 × ¥129 = ¥258.00
+  // 重渲染后退货额实时联动：白38×1 + 黑39(默认1)×1 = ¥258.00
   html = page.render(ctx, state);
   assert.ok(/退货额[\s\S]*?¥258\.00/.test(html), '退货额应实时更新为 ¥258.00');
 
@@ -318,4 +318,38 @@ test('问题3：app.js 的 input 事件同时派发 [data-change]（实时识别
     'input 监听应同时命中 data-input 与 data-change 输入框');
   assert.ok(/getAttribute\(['"]data-input['"]\)[\s\S]*?getAttribute\(['"]data-change['"]\)/.test(appJs),
     'input 事件应派发 data-change 对应动作（退几件输入即识别）');
+});
+
+/* ========== 问题1（新）：换货页「退几件」默认输入内容与退货额关联 ========== */
+
+test('问题1：换货页「退几件」默认值=可退数，且退货额与默认输入关联', () => {
+  const { ctx, state, original } = freshEx();
+  page.actions['select-original'](ctx, state, elAttr({ 'data-no': original.no }));
+  page.actions['goto-exchange'](ctx, state);
+  const html = page.render(ctx, state);
+
+  // 输入框默认值 = 可退数（未手动设置 state 时）
+  assert.ok(/data-change="exch-return-qty"[^>]*data-sku="X0010138"[^>]*value="2"/.test(html),
+    '白38 默认退 2 件（=可退数）');
+  assert.ok(/data-change="exch-return-qty"[^>]*data-sku="X0010239"[^>]*value="1"/.test(html),
+    '黑39 默认退 1 件（=可退数）');
+  // 退货额应与默认输入关联：2×129 + 1×129 = 387
+  assert.ok(/退货额[\s\S]*?¥387\.00/.test(html),
+    '初始退货额应关联默认输入内容（¥387.00），而非 ¥0.00');
+});
+
+test('问题1：换货页退货额随「退几件」实时更新（含默认值兜底）', () => {
+  const { ctx, state, original } = freshEx();
+  page.actions['select-original'](ctx, state, elAttr({ 'data-no': original.no }));
+  page.actions['goto-exchange'](ctx, state);
+
+  // 白38 改为退 1 件（黑39 未设置，仍按默认 1 件计）→ 1×129 + 1×129 = 258
+  page.actions['exch-return-qty'](ctx, state, elValue({ 'data-sku': 'X0010138' }, 1));
+  let html = page.render(ctx, state);
+  assert.ok(/退货额[\s\S]*?¥258\.00/.test(html), '退货额应随输入实时更新为 ¥258.00');
+
+  // 黑39 置 0 → 仅 1×129 = 129
+  page.actions['exch-return-qty'](ctx, state, elValue({ 'data-sku': 'X0010239' }, 0));
+  html = page.render(ctx, state);
+  assert.ok(/退货额[\s\S]*?¥129\.00/.test(html), '黑39 置 0 后退货额为 ¥129.00');
 });
