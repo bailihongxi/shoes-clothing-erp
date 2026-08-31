@@ -195,7 +195,7 @@
 
   /* 我的页桌面端内容宽度收窄，避免卡片过宽 */
   .mine-desktop { max-width: 760px; }
-  .mine-desktop .quick-grid { grid-template-columns: repeat(4, 1fr); }
+  .mine-desktop .quick-grid.mine-quick { grid-template-columns: repeat(3, 1fr); }
 
   /* v2 quick-circle 6 列布局 */
   .quick-circles { grid-template-columns: repeat(6, 1fr); gap: 16px; }

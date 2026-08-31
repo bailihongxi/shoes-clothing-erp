@@ -153,15 +153,18 @@ test('我的页：云同步卡含 3 按钮（同步到云端 / 从云端恢复 /
   assert.ok(/还没同步过/.test(html), '未同步时默认提示');
 });
 
-test('我的页：8 格圆形快捷入口（开单/进货/商品/供应商/库存/记账中心/报表/设置）', () => {
+test('我的页：9 格 3×3 九宫格快捷入口（开单/进货/商品/供应商/库存/记账中心/报表/退换货/设置）', () => {
   const ctx = newCtx();
   const html = minePage.render(ctx, minePage.init(ctx));
-  assert.ok(/class="quick-grid mine-quick"/.test(html), '应有 8 格圆形网格');
+  assert.ok(/class="quick-grid mine-quick"/.test(html), '应有九宫格网格');
   assert.ok(/常用入口/.test(html), '「常用入口」字串保留（兼容既有测试）');
-  var pages = ['sale', 'purchase', 'product', 'supplier', 'inventory', 'account', 'report', 'setting'];
+  var pages = ['sale', 'purchase', 'product', 'supplier', 'inventory', 'account', 'report', 'exchange', 'setting'];
   pages.forEach(function (p) {
     assert.ok(html.includes('data-page="' + p + '"'), '应有跳转 ' + p);
   });
+  const m = html.match(/<div class="quick-grid mine-quick">([\s\S]*?)<\/div><\/div>/);
+  assert.ok(m, '应有 mine-quick 容器');
+  assert.strictEqual((m[1].match(/quick-circle/g) || []).length, 9, '应恰好 9 格');
 });
 
 test('我的页：关于卡片 + 版本 v2.0 + 数据存储于本机 IndexedDB', () => {
@@ -213,7 +216,7 @@ test('我的页：toggle-sync-cfg 翻转 syncOpen', () => {
  * 跨页集成（库存 + 我的 联动：开单磁贴 → sale、库存 → inventory）
  * =========================================================== */
 
-test('跨页：我的页 8 格圆形 入口 data-page 全部能在 ERP.pages 中找到', () => {
+test('跨页：我的页 九宫格 入口 data-page 全部能在 ERP.pages 中找到', () => {
   // 显式 require 所有页面模块，让它们自注册到 ERP.pages（Node 测试下 global 隔离）
   require('../js/ui/page-sale.js');
   require('../js/ui/page-purchase.js');
@@ -222,6 +225,7 @@ test('跨页：我的页 8 格圆形 入口 data-page 全部能在 ERP.pages 中
   require('../js/ui/page-account.js');
   require('../js/ui/page-report.js');
   require('../js/ui/page-setting.js');
+  require('../js/ui/page-exchange.js');
 
   const ctx = newCtx();
   const html = minePage.render(ctx, minePage.init(ctx));

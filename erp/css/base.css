@@ -448,6 +448,12 @@ table.matrix td.cell.hit { outline: 2px solid var(--c-primary); background: var(
   font-size: 12px;
   color: var(--c-text);
 }
+/* 我的 → 常用入口：3×3 九宫格（9 项圆形快捷入口） */
+.quick-grid.mine-quick {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 8px;
+}
 /* 各入口配色（与设计图保持一致）*/
 .quick-circle.c-green   .disc { background: var(--c-mint-100);  color: var(--c-mint-700); }
 .quick-circle.c-blue    .disc { background: #dbeafe;            color: #1d4ed8; }

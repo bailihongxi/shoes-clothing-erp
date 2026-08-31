@@ -128,3 +128,15 @@ test('我的页：桌面端显示 page-head 且不显示手机 banner', () => {
   assert.ok(/<div class="page-head"><h2>我的<\/h2>/.test(html), '桌面端有 page-head');
   assert.ok(/云同步/.test(html) && /常用入口/.test(html), '保留核心内容');
 });
+
+test('我的页：常用入口为 9 格 3×3 九宫格且含退换货', () => {
+  const ctx = newCtx();
+  const html = mine.render(ctx, mine.init(ctx));
+  const m = html.match(/<div class="quick-grid mine-quick">([\s\S]*?)<\/div><\/div>/);
+  assert.ok(m, '应有 mine-quick 九宫格容器');
+  const inner = m[1];
+  const count = (inner.match(/quick-circle/g) || []).length;
+  assert.strictEqual(count, 9, '应恰好 9 个快捷入口');
+  assert.ok(/data-page="exchange"/.test(inner), '九宫格应含退换货入口');
+  assert.ok(/退换货/.test(inner), '退换货文字显示');
+});

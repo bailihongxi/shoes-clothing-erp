@@ -238,7 +238,7 @@
     // 3. 云同步卡片
     h += renderSyncCard(state, cfg);
 
-    // 4. 常用入口（8 格圆形 2 行 4 列）—— 关键字串「常用入口」保留
+    // 4. 常用入口（9 格圆形 3×3 九宫格）—— 关键字串「常用入口」保留
     h += renderQuickGrid();
 
     // 5. 关于 + 版本信息（保留「关于」字串以兼容既有测试）
@@ -306,6 +306,7 @@
       { page: 'inventory', icon: '▦',  text: '库存',     color: 'c-teal' },
       { page: 'account',   icon: '📋', text: '记账中心', color: 'c-purple' },
       { page: 'report',    icon: '📊', text: '报表',     color: 'c-pink' },
+      { page: 'exchange',  icon: '🔁', text: '退换货',   color: 'c-peach' },
       { page: 'setting',   icon: '⚙', text: '设置',     color: 'c-gray' }
     ];
     var h = '<div class="card quick-grid-card"><h3 class="card-title">常用入口</h3><div class="quick-grid mine-quick">';
