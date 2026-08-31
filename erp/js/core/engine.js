@@ -26,6 +26,23 @@
 
   var engine = {};
 
+  /**
+   * 拿到操作日志写入器（兜底顺序问题）：
+   *   浏览器下 engine.js 可能在 store/repo.js 之前加载，导致 factory 拿到的 repo 为 null；
+   *   一旦用户点击保存，函数真正执行时 ERP.repo 早已就绪，所以延迟读取。
+   */
+  function repoRef() {
+    var r = (ERP && ERP.repo) || repo;
+    return (r && typeof r.log === 'function') ? r : null;
+  }
+  /** 写入操作日志（兜底：repo 暂未注入时不抛错，仅落 console.warn） */
+  function writeLog(ctx, action, detail) {
+    var r = repoRef();
+    if (r && typeof r.log === 'function') { r.log(ctx, action, detail); return; }
+    if (typeof console !== 'undefined') {
+      console.warn('[操作日志未写入] ' + action + ' ' + (detail || ''));
+    }
+  }
   function err(msg) {
     return { ok: false, error: msg };
   }
@@ -118,7 +135,7 @@
 
     ledger.fromPurchase(ctx, doc);
     debt.applyPurchase(ctx, doc);
-    repo.log(ctx, '保存进货单', doc.no + ' 共 ' + util.fmtYuan(doc.total) + '，欠款 ' + util.fmtYuan(doc.debt));
+    writeLog(ctx, '保存进货单', doc.no + ' 共 ' + util.fmtYuan(doc.total) + '，欠款 ' + util.fmtYuan(doc.debt));
 
     return { ok: true, doc: doc };
   };
@@ -137,7 +154,7 @@
     doc.voided = true;
     doc.voidedAt = util.nowISO();
     ctx.touch('purchases', doc);
-    repo.log(ctx, '作废进货单', doc.no + '，库存与欠款已回滚');
+    writeLog(ctx, '作废进货单', doc.no + '，库存与欠款已回滚');
     return { ok: true, doc: doc };
   };
 
@@ -238,7 +255,7 @@
 
     ledger.fromSale(ctx, doc);
     if (partner && doc.debt) debt.applySale(ctx, doc);
-    repo.log(ctx, '保存销售单', doc.no + ' 应收 ' + util.fmtYuan(doc.payable) +
+    writeLog(ctx, '保存销售单', doc.no + ' 应收 ' + util.fmtYuan(doc.payable) +
       (doc.debt ? '，欠款 ' + util.fmtYuan(doc.debt) : '') +
       (doc.items.some(function (x) {
         return x.type === schema.DOC.GIFT;
@@ -261,7 +278,7 @@
     doc.voided = true;
     doc.voidedAt = util.nowISO();
     ctx.touch('sales', doc);
-    repo.log(ctx, '作废销售单', doc.no + '，库存与欠款已回滚');
+    writeLog(ctx, '作废销售单', doc.no + '，库存与欠款已回滚');
     return { ok: true, doc: doc };
   };
 
@@ -381,7 +398,7 @@
     doc.debtRefund = debtRefund;
     ctx.touch('sales', doc);
 
-    repo.log(ctx, '销售退货', doc.no + '（红冲 ' + original.no + '）退 ' +
+    writeLog(ctx, '销售退货', doc.no + '（红冲 ' + original.no + '）退 ' +
       util.fmtYuan(refundValue) + '，入库 ' + items.reduce(function (t, it) {
         return t + it.qty;
       }, 0) + ' 件');
@@ -402,7 +419,7 @@
 
     var res = engine.savePurchase(ctx, Object.assign({}, input, { no: no, date: doc.date }));
     if (!res.ok) return res;
-    repo.log(ctx, '修改进货单', no);
+    writeLog(ctx, '修改进货单', no);
     return res;
   };
 
@@ -432,7 +449,7 @@
       isSupplier: isSupplier,
       note: input.note
     });
-    repo.log(ctx, isSupplier ? '供应商付款' : '客户回款',
+    writeLog(ctx, isSupplier ? '供应商付款' : '客户回款',
       (st.partner ? st.partner.name : '') + ' ' + util.fmtYuan(st.paid) +
       (st.overpay ? '（多付 ' + util.fmtYuan(st.overpay) + '）' : ''));
     return { ok: true, settle: st };
@@ -454,7 +471,7 @@
     var no = docNo.stocktake(date, ctx.data.stocktakes);
     var res = inv.applyStocktake(ctx, { date: date, styleCode: input.styleCode, counts: counts, note: input.note }, no);
     if (!res.ok) return err(res.error);
-    repo.log(ctx, '保存盘点单', no + ' 差异 ' + res.doc.diffQty + ' 件');
+    writeLog(ctx, '保存盘点单', no + ' 差异 ' + res.doc.diffQty + ' 件');
     return { ok: true, doc: res.doc };
   };
 

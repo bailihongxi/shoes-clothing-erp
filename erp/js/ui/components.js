@@ -201,11 +201,13 @@
     return mask;
   };
 
-  C.closeModal = function closeModal() {
+  /** 关闭当前模态框（闭包内顶层声明，让 modal() 内部 addEventListener/handler 可直接引用） */
+  function closeModal() {
     if (!hasDom()) return;
     var mask = document.getElementById('modal-mask');
     if (mask && mask.parentNode) mask.parentNode.removeChild(mask);
-  };
+  }
+  C.closeModal = closeModal;
 
   /** 确认框：返回 Promise<boolean> */
   C.confirm = function confirm(title, body, okText) {

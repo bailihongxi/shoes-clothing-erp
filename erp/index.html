@@ -34,6 +34,10 @@
 
 <div id="toast-wrap"></div>
 
+<!-- ============ 存储层（先于 engine.js，因其依赖 ERP.repo 写操作日志） ============ -->
+<script src="js/store/db.js"></script>
+<script src="js/store/repo.js"></script>
+
 <!-- ============ 核心逻辑层（纯函数，可在 Node 中测试） ============ -->
 <script src="js/core/util.js"></script>
 <script src="js/core/schema.js"></script>
@@ -48,10 +52,6 @@
 <script src="js/core/sync.js"></script>
 <script src="js/core/cart.js"></script>
 <script src="js/core/engine.js"></script>
-
-<!-- ============ 存储层 ============ -->
-<script src="js/store/db.js"></script>
-<script src="js/store/repo.js"></script>
 
 <!-- ============ 界面层 ============ -->
 <script src="js/ui/router.js"></script>
