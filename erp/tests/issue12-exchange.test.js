@@ -262,3 +262,60 @@ test('首页：常用入口含「退换」磁贴并跳转到 exchange 页', () =
   assert.ok(quickMatch, '应有快捷入口区块');
   assert.ok(/data-act="go"\s+data-page="exchange"/.test(quickMatch[1]), '退换磁贴应跳转到 exchange 页');
 });
+
+/* ========== 问题3：退几件输入框实时可识别 ========== */
+
+/** 带 value 的模拟输入元素（data-change 动作读 getAttribute + value） */
+function elValue(attrs, value) {
+  return { getAttribute: (n) => (attrs[n] !== undefined ? attrs[n] : null), value: String(value) };
+}
+
+test('问题3：换货页/退货页「退几件」输入框带 data-live，输入即实时识别', () => {
+  const { ctx, state, original } = freshEx();
+  page.actions['select-original'](ctx, state, elAttr({ 'data-no': original.no }));
+
+  // 换货视图：退几件输入框带 data-change + data-live
+  page.actions['goto-exchange'](ctx, state);
+  const exHtml = page.render(ctx, state);
+  assert.ok(/data-change="exch-return-qty"[^>]*data-live="1"/.test(exHtml),
+    '换货页退几件输入框应带 data-live="1"（输入即实时预览）');
+  assert.ok(/data-change="exch-return-qty"[^>]*data-sku="X0010138"/.test(exHtml), '退几件绑定原单 SKU');
+
+  // 退货视图：同样带 data-live
+  state.tab = 'return';
+  const retHtml = page.render(ctx, state);
+  assert.ok(/data-change="return-qty"[^>]*data-live="1"/.test(retHtml),
+    '退货页退几件输入框应带 data-live="1"');
+});
+
+test('问题3：退几件输入（input 事件、不 blur）即时写入 state 并联动退货额', () => {
+  const { ctx, state, original } = freshEx();
+  page.actions['select-original'](ctx, state, elAttr({ 'data-no': original.no }));
+  page.actions['goto-exchange'](ctx, state);
+
+  // 初始：未输入，退 0 件 → 退货额 ¥0.00
+  let html = page.render(ctx, state);
+  assert.ok(/退货额[\s\S]*?¥0\.00/.test(html), '初始退货额应为 ¥0.00');
+
+  // 输入「2」——仅触发 input 事件（data-change action），不依赖 blur/change
+  page.actions['exch-return-qty'](ctx, state, elValue({ 'data-sku': 'X0010138' }, 2));
+  assert.strictEqual(state.exchReturnQty['X0010138'], 2, '输入即写回 state.exchReturnQty');
+
+  // 重渲染后退货额实时联动：2 件 × ¥129 = ¥258.00
+  html = page.render(ctx, state);
+  assert.ok(/退货额[\s\S]*?¥258\.00/.test(html), '退货额应实时更新为 ¥258.00');
+
+  // 非法输入（负数/空）→ 归 0
+  page.actions['exch-return-qty'](ctx, state, elValue({ 'data-sku': 'X0010138' }, -3));
+  assert.strictEqual(state.exchReturnQty['X0010138'], 0, '负值应归 0');
+  page.actions['exch-return-qty'](ctx, state, elValue({ 'data-sku': 'X0010138' }, ''));
+  assert.strictEqual(state.exchReturnQty['X0010138'], 0, '空值应归 0');
+});
+
+test('问题3：app.js 的 input 事件同时派发 [data-change]（实时识别机制）', () => {
+  const appJs = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'js', 'app.js'), 'utf8');
+  assert.ok(/'\[data-input\],\[data-change\]'/.test(appJs),
+    'input 监听应同时命中 data-input 与 data-change 输入框');
+  assert.ok(/getAttribute\(['"]data-input['"]\)[\s\S]*?getAttribute\(['"]data-change['"]\)/.test(appJs),
+    'input 事件应派发 data-change 对应动作（退几件输入即识别）');
+});

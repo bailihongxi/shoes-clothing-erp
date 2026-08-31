@@ -366,7 +366,7 @@
       var def = state.returnQty[it.skuId] !== undefined ? state.returnQty[it.skuId] : maxQty;
       h += '<tr><td>' + esc(product ? product.name : it.styleCode) + ' <span class="weak small">' + esc(it.color) + '/' + esc(it.size) + '</span></td>' +
         '<td class="num">' + maxQty + '</td>' +
-        '<td class="num"><input class="input" style="width:60px;text-align:right" data-change="return-qty" data-sku="' + esc(it.skuId) + '" inputmode="numeric" value="' + def + '"></td></tr>';
+        '<td class="num"><input class="input" style="width:60px;text-align:right" data-change="return-qty" data-live="1" data-sku="' + esc(it.skuId) + '" inputmode="numeric" value="' + def + '"></td></tr>';
     });
     h += '</tbody></table></div>' +
       '<div class="row mt8"><button class="btn" data-act="back-pick">重新选单</button>' +
@@ -403,7 +403,7 @@
       var def = state.exchReturnQty[it.skuId] !== undefined ? state.exchReturnQty[it.skuId] : maxQty;
       h += '<tr><td>' + esc(product ? product.name : it.styleCode) + ' <span class="weak small">' + esc(it.color) + '/' + esc(it.size) + '</span></td>' +
         '<td class="num">' + maxQty + '</td>' +
-        '<td class="num"><input class="input" style="width:60px;text-align:right" data-change="exch-return-qty" data-sku="' + esc(it.skuId) + '" inputmode="numeric" value="' + def + '"></td></tr>';
+        '<td class="num"><input class="input" style="width:60px;text-align:right" data-change="exch-return-qty" data-live="1" data-sku="' + esc(it.skuId) + '" inputmode="numeric" value="' + def + '"></td></tr>';
     });
     h += '</tbody></table></div></div>';
 

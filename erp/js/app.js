@@ -78,9 +78,9 @@
     });
 
     document.addEventListener('input', function (ev) {
-      var el = ev.target && ev.target.closest ? ev.target.closest('[data-input]') : null;
+      var el = ev.target && ev.target.closest ? ev.target.closest('[data-input],[data-change]') : null;
       if (!el) return;
-      var name = el.getAttribute('data-input');
+      var name = el.getAttribute('data-input') || el.getAttribute('data-change');
       // 输入法组合进行中：完全忽略，等 compositionend 统一处理，避免打断中文输入
       if (app._isComposing(el, ev)) return;
       dispatch(name, el, ev);
@@ -90,9 +90,9 @@
 
     // 输入法结束后补一次重渲染（中文/日文等组合输入必须靠它才能正确刷新预览）
     document.addEventListener('compositionend', function (ev) {
-      var el = ev.target && ev.target.closest ? ev.target.closest('[data-input]') : null;
+      var el = ev.target && ev.target.closest ? ev.target.closest('[data-input],[data-change]') : null;
       if (!el) return;
-      var name = el.getAttribute('data-input');
+      var name = el.getAttribute('data-input') || el.getAttribute('data-change');
       dispatch(name, el, ev);
       if (app._isLive(el)) relive(el);
     });
