@@ -35,32 +35,33 @@ test('首页：渲染含今日概览与快捷入口，顶栏 hero 有「开单�
   assert.ok(/进货/.test(html) && /报表/.test(html), '快捷入口保留进货/报表等常用入口');
 });
 
-test('首页：手机端指标+开单按钮按 3 列（2,2,1）九宫格式排列', () => {
+test('首页：手机端指标+开单按钮按图2 2x2 + 右侧大按钮（跨两行）排列', () => {
   const ctx = newCtx();
   seedShop(ctx);
   const html = home.render(ctx, home.init(ctx));
-  // 3 列容器 + 放大开单按钮
-  assert.ok(/class="mobile-only stat-grid home-stat-3col"/.test(html), '应有 home-stat-3col 3 列容器');
-  // 截取 3 列容器内的内容（到下一个 mobile-only 区块为止）
-  const start = html.indexOf('home-stat-3col');
+  // 2x2 容器 + 右侧大按钮（grid-row: span 2）
+  assert.ok(/class="mobile-only stat-grid home-stat-2x2"/.test(html), '应有 home-stat-2x2 2x2 容器');
+  const start = html.indexOf('home-stat-2x2');
   const end = html.indexOf('mobile-only card', start);
   const block = html.slice(start, end > 0 ? end : html.length);
-  // 5 个格子：4 指标 + 开单按钮
+  // 4 个指标卡（图2：营收/单数/毛利/预警）
   const cards = (block.match(/class="stat-card"/g) || []).length;
   assert.strictEqual(cards, 4, '应恰有 4 个指标卡');
-  assert.ok(/今日应收/.test(block) && /今日毛利/.test(block), '列1/列2 首行：应收+毛利');
-  assert.ok(/今日开单/.test(block) && /预警款数/.test(block), '列1/列2 次行：开单+预警');
-  // 开单按钮占第 3 列（跨 2 行）
-  const btnMatch = block.match(/<button[^>]*class="home-sale-btn home-sale-col"[^>]*>/);
-  assert.ok(btnMatch, '应有放大开单按钮');
+  assert.ok(/今日营收/.test(block), '应有「今日营收」');
+  assert.ok(/今日单数/.test(block), '应有「今日单数」');
+  assert.ok(/今日毛利/.test(block), '应有「今日毛利」');
+  assert.ok(/预警款数/.test(block), '应有「预警款数」');
+  // 右侧放大开单按钮（home-sale-row，跨 2 行）
+  const btnMatch = block.match(/<button[^>]*class="home-sale-btn home-sale-row"[^>]*>/);
+  assert.ok(btnMatch, '应有右侧放大开单按钮（home-sale-row）');
   assert.ok(/data-act="go"\s+data-page="sale"/.test(btnMatch[0]), '按钮跳转 sale');
-  // 顺序：应收、毛利、开单按钮、开单、预警（按钮在 3 列中间）
-  const idxA = block.indexOf('今日应收');
-  const idxB = block.indexOf('今日毛利');
-  const idxC = block.indexOf('home-sale-col');
-  const idxD = block.indexOf('今日开单');
-  const idxE = block.indexOf('预警款数');
-  assert.ok(idxA < idxB && idxB < idxC && idxC < idxD && idxD < idxE, 'DOM 顺序应收→毛利→按钮→开单→预警');
+  // DOM 顺序：营收→单数→毛利→预警→按钮（按钮最后写也能 grid-row span 2）
+  const idxA = block.indexOf('今日营收');
+  const idxB = block.indexOf('今日单数');
+  const idxC = block.indexOf('今日毛利');
+  const idxD = block.indexOf('预警款数');
+  const idxE = block.indexOf('home-sale-row');
+  assert.ok(idxA < idxB && idxB < idxC && idxC < idxD && idxD < idxE, 'DOM 顺序营收→单数→毛利→预警→开单按钮');
 });
 
 test('首页：未备份时显示提醒条', () => {
