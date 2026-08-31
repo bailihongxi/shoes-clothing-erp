@@ -62,6 +62,15 @@
   .grid-4 { grid-template-columns: repeat(4, 1fr); }
   .grid-3 { grid-template-columns: repeat(3, 1fr); }
 
+  /* 首页显著「开单」按钮 - 桌面端更大 */
+  .home-top { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; }
+  .home-sale-btn { min-width: 180px; padding: 22px 32px; border-radius: 16px; }
+  .home-sale-btn .ico { font-size: 42px; }
+  .home-sale-btn .t { font-size: 24px; margin-top: 6px; }
+  .home-sale-btn .s { font-size: 13px; }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+
   .card { padding: 14px 16px; }
 
   .modal-mask { align-items: center; }

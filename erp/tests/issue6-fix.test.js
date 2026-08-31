@@ -28,16 +28,22 @@ test('问题6-导航：底部导航仅含 首页/库存/我的（无开单、无
   assert.ok(!names.includes('report'), '报表不应在底部导航');
 });
 
-/* ---------------- ② 手机首页去掉开单卡片 ---------------- */
+/* ---------------- ② 手机首页精简：快捷入口网格不含开单（顶部 hero 区域放开单属于问题9） ---------------- */
 
-test('问题6-首页：不再渲染「去开单」大按钮与开单磁贴', () => {
+test('问题6-首页：快捷入口网格不混入开单（按钮已下沉到「我的 → 常用入口」）', () => {
   const ctx = newCtx();
   const html = home.render(ctx, home.init(ctx));
-  assert.ok(!/去开单/.test(html), '首页不应再有「去开单」大按钮');
-  assert.ok(!/data-page="sale"/.test(html), '首页快捷入口不应含开单磁贴');
+  // 问题6原目标: 5 列快捷入口网格不再含「开单」磁贴，避免重复。
+  // 问题9新增: 顶部 hero 区出现一个显著的「开单」跳转按钮；不与问题6冲突。
+  // 这里精确断言: 快捷入口卡片内不应含 sale。
+  const quickMatch = html.match(/<h3[^>]*>快捷入口<\/h3>([\s\S]*?)<\/div>/);
+  assert.ok(quickMatch, '应有「快捷入口」区块');
+  const quickHtml = quickMatch[1];
+  assert.ok(!/data-page="sale"/.test(quickHtml), '快捷入口网格内不应含开单磁贴');
   // 其余常用入口仍在首页快捷入口
-  assert.ok(/快捷入口/.test(html), '快捷入口区块应保留');
-  assert.ok(/进货/.test(html) && /报表/.test(html), '进货/报表等快捷入口仍在');
+  assert.ok(/进货/.test(quickHtml), '进货快捷入口应在');
+  assert.ok(/报表/.test(quickHtml), '报表快捷入口应在');
+  assert.ok(/商品/.test(quickHtml), '商品快捷入口应在');
 });
 
 /* ---------------- ③ 开单等入口在「我的→常用入口」可触达 ---------------- */

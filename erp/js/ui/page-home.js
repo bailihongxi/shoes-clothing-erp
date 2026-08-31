@@ -136,6 +136,15 @@
         C.stat('预警款数', s.alertCount, s.alertCount > 0 ? 'warn' : '') +
         '</div>';
 
+      // 首页显著「开单」按钮——手机/电脑两套布局共用，靠 CSS 调尺寸
+      var saleBtn =
+        '<button class="home-sale-btn" type="button" data-act="go" data-page="sale" ' +
+        'aria-label="开单，前往销售开单页面">' +
+        '<span class="ico" aria-hidden="true">🛒</span>' +
+        '<span class="t">开单</span>' +
+        '<span class="s">扫码 / 选货</span>' +
+        '</button>';
+
       var quick = C.quickGrid([
         { page: 'purchase', icon: '📥', text: '进货' },
         { page: 'product', icon: '📦', text: '商品' },
@@ -149,7 +158,7 @@
         '<span class="desc">' + util.today() + '</span></div>' +
         backupReminder(ctx) +
         todoBar(ctx) +
-        '<div class="card mb8"><div class="row" style="align-items:center">' + st + '</div></div>' +
+        '<div class="card mb8"><div class="home-top">' + st + saleBtn + '</div></div>' +
         '<div class="card mb8"><h3 class="card-title">快捷入口</h3>' + quick + '</div>' +
         desktopExtras(ctx)
       );

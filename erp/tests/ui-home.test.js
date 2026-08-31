@@ -19,14 +19,19 @@ function seedShop(ctx) {
   ctx.touch('skus', ctx.data.skus[0]);
 }
 
-test('首页：渲染含今日概览与快捷入口（开单卡片已移至「我的→常用入口」）', () => {
+test('首页：渲染含今日概览与快捷入口，顶栏 hero 有「开单」跳转按钮（问题9）', () => {
   const ctx = newCtx();
   seedShop(ctx);
   const html = home.render(ctx, home.init(ctx));
   assert.ok(/今日营收/.test(html), '应有今日营收卡');
-  assert.ok(!/去开单/.test(html), '首页不再放置「去开单」大按钮（已移至我的→常用入口）');
-  assert.ok(!/data-page="sale"/.test(html), '首页快捷入口不应再含开单入口');
   assert.ok(/快捷入口/.test(html), '应有快捷入口');
+  // 问题9：顶栏 hero 有显著「开单」跳转按钮（手机/电脑共用）
+  assert.ok(/class="home-sale-btn"/.test(html), '应有 home-sale-btn 醒目按钮');
+  assert.ok(/data-act="go"\s+data-page="sale"/.test(html), '按钮应跳转到 sale（销售开单）');
+  // 快捷入口网格保持精简（不含开单磁贴 - 问题6）
+  const quickMatch = html.match(/<h3[^>]*>快捷入口<\/h3>([\s\S]*?)<\/div>/);
+  assert.ok(quickMatch, '应有快捷入口区块');
+  assert.ok(!/data-page="sale"/.test(quickMatch[1]), '快捷入口网格内不应含开单磁贴');
   assert.ok(/进货/.test(html) && /报表/.test(html), '快捷入口保留进货/报表等常用入口');
 });
 

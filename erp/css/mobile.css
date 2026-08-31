@@ -36,6 +36,13 @@
   .grid-4 { grid-template-columns: repeat(4, 1fr); }
   .grid-3 { grid-template-columns: repeat(3, 1fr); }
 
+  /* 首页显著「开单」按钮 - 手机尺寸 */
+  .home-top { grid-template-columns: minmax(0, 1fr) auto; gap: 8px; }
+  .home-sale-btn { min-width: 92px; padding: 10px 12px; border-radius: 12px; }
+  .home-sale-btn .ico { font-size: 24px; }
+  .home-sale-btn .t { font-size: 16px; letter-spacing: 1px; }
+  .home-sale-btn .s { font-size: 11px; }
+
   .app-main { padding: 10px 10px calc(var(--tab-h) + 28px); }
 
   .quick-grid { grid-template-columns: repeat(5, 1fr); gap: 6px; }
