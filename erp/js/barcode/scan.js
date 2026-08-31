@@ -93,20 +93,25 @@
     return typeof window !== 'undefined' && window && typeof document !== 'undefined';
   }
 
+  /** 决定扫码方式：同时满足「有 BarcodeDetector」与「安全上下文」才实时扫，否则走手动兜底 */
+  scan.chooseMode = function chooseMode(detector, secure) {
+    return (detector && secure !== false) ? 'realtime' : 'manual';
+  };
+
   /**
    * 启动扫码（三级降级）
    * @param opts { onResult(code), onError(msg) }
+   *
+   * 关键修复（问题8）：无实时扫码能力（大多数桌面 file:// 打开、或缺 BarcodeDetector 的手机）
+   * 不再直接弹文件选择器后「无反应」，而是统一弹出「拍照识别 + 手输条码」卡片，保证任何环境都能手动录入。
    */
   scan.start = function start(opts) {
     opts = opts || {};
     if (!hasWindow()) { if (opts.onError) opts.onError('当前环境不支持扫码'); return; }
-    if (window.BarcodeDetector) {
+    if (scan.chooseMode(window.BarcodeDetector, window.isSecureContext) === 'realtime') {
       realtime(opts);
-    } else if (window.isSecureContext !== false) {
-      // 退到拍照：触发一个隐藏的 file input
-      photoInput(opts);
     } else {
-      manualPrompt(opts);
+      manualCard(opts);
     }
   };
 
@@ -131,7 +136,7 @@
             video.play();
             tick();
           })
-          .catch(function () { manualPrompt(opts); closeMask(); });
+          .catch(function () { closeMask(); manualCard(opts); });
         function tick() {
           if (stop) return;
           detector.detect(video).then(function (list) {
@@ -153,7 +158,7 @@
         stop = true;
         streamStop(video.srcObject);
         closeMask();
-        manualPrompt(opts);
+        manualCard(opts);
       });
     }
     function streamStop(s) { if (s && s.getTracks) s.getTracks().forEach(function (t) { t.stop(); }); }
@@ -198,13 +203,42 @@
     if (opts.onError) opts.onError('当前环境无法拍照识别，请手输条码');
   }
 
-  /** ③ 手输 */
-  function manualPrompt(opts) {
-    if (!hasWindow()) return;
-    var code = window.prompt('请输入条码 / 款号 / 色码编号：');
-    if (code && code.trim()) {
-      if (opts.onResult) opts.onResult(code.trim());
-    }
+  /**
+   * ③ 手动兜底卡片：拍照识别 + 手输条码
+   * 任何无法实时扫码的环境都会落到这里，保证「点击扫码必有反应」。
+   */
+  function manualCard(opts) {
+    if (!hasWindow()) { if (opts.onError) opts.onError('当前环境不支持扫码'); return; }
+    var body =
+      '<p class="muted small mb8">本设备无法实时扫码，可任选其一：</p>' +
+      '<button class="btn btn-block mb8" data-act="scan-photo">📷 拍照 / 从相册识别</button>' +
+      '<div class="field"><label>手输条码 / 款号 / 色码编号</label>' +
+      '<input class="input" id="scan-manual-input" placeholder="如 XA1234 或 X001" autocomplete="off"></div>';
+    ui.modal({
+      title: '扫码',
+      body: body,
+      actions: [
+        { text: '确定', cls: 'btn btn-primary', act: 'scan-manual-ok' },
+        { text: '取消', cls: 'btn', act: 'close-modal' }
+      ],
+      maskClose: true,
+      onMount: function (b, mask) {
+        var input = b.querySelector('#scan-manual-input');
+        if (input && input.focus) setTimeout(function () { try { input.focus(); } catch (e) {} }, 50);
+        var okBtn = mask.querySelector('[data-act="scan-manual-ok"]');
+        if (okBtn) okBtn.addEventListener('click', function () {
+          var v = input ? String(input.value || '').trim() : '';
+          if (!v) { ui.toast('请输入条码 / 款号', 'err'); return; }
+          if (ui.closeModal) ui.closeModal();
+          if (opts.onResult) opts.onResult(v);
+        });
+        var photoBtn = mask.querySelector('[data-act="scan-photo"]');
+        if (photoBtn) photoBtn.addEventListener('click', function () {
+          if (ui.closeModal) ui.closeModal();
+          photoInput(opts);
+        });
+      }
+    });
   }
 
   /** 扫码结果 → 打开商品卡（浏览器）；未建档则提示去建档 */
