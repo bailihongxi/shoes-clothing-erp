@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>鞋服店铺进销存记账软件 · 实施方案</title>
+<style>
+  :root{
+    --blue:#2563eb; --blue-bg:#eff6ff; --blue-bd:#93c5fd;
+    --green:#059669; --green-bg:#ecfdf5; --green-bd:#6ee7b7;
+    --orange:#d97706; --orange-bg:#fffbeb; --orange-bd:#fcd34d;
+    --purple:#7c3aed; --purple-bg:#f5f3ff; --purple-bd:#c4b5fd;
+    --red:#dc2626; --red-bg:#fef2f2;
+    --ink:#1e293b; --sub:#64748b; --line:#e2e8f0; --bg:#f8fafc;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif; color:var(--ink); background:var(--bg); line-height:1.75; font-size:15px;}
+  .wrap{max-width:960px; margin:0 auto; padding:24px 16px 80px;}
+  header.hero{background:linear-gradient(135deg,#1e3a8a,#2563eb); color:#fff; border-radius:16px; padding:36px 28px; margin-bottom:28px;}
+  header.hero h1{font-size:26px; margin-bottom:10px;}
+  header.hero p{opacity:.92; font-size:15px;}
+  header.hero .tags{margin-top:14px; display:flex; flex-wrap:wrap; gap:8px;}
+  header.hero .tag{background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.35); border-radius:999px; padding:3px 12px; font-size:13px;}
+  nav.toc{background:#fff; border:1px solid var(--line); border-radius:12px; padding:18px 22px; margin-bottom:28px;}
+  nav.toc b{display:block; margin-bottom:8px; color:var(--sub); font-size:13px; letter-spacing:1px;}
+  nav.toc ol{list-style:none; display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:4px 18px;}
+  nav.toc a{color:var(--blue); text-decoration:none; font-size:14px;}
+  nav.toc a:hover{text-decoration:underline;}
+  section{background:#fff; border:1px solid var(--line); border-radius:14px; padding:26px 24px; margin-bottom:26px;}
+  h2{font-size:20px; margin-bottom:6px; display:flex; align-items:center; gap:10px;}
+  h2 .no{background:var(--blue); color:#fff; border-radius:8px; min-width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; font-size:15px;}
+  h3{font-size:16px; margin:22px 0 8px; color:var(--blue);}
+  p{margin:8px 0;}
+  ul,ol{padding-left:22px; margin:8px 0;}
+  li{margin:4px 0;}
+  .lead{color:var(--sub); font-size:14px; margin-bottom:14px;}
+  table{width:100%; border-collapse:collapse; margin:12px 0; font-size:14px;}
+  th{background:var(--blue-bg); color:#1e40af; text-align:left; padding:9px 12px; border:1px solid var(--line); font-weight:600; white-space:nowrap;}
+  td{padding:8px 12px; border:1px solid var(--line); vertical-align:top;}
+  tr:nth-child(even) td{background:#fbfdff;}
+  .figure{margin:18px 0 6px; background:#fbfcfe; border:1px solid var(--line); border-radius:12px; padding:14px 10px; overflow-x:auto;}
+  .figure svg{width:100%; height:auto; display:block; min-width:640px;}
+  .figcap{text-align:center; color:var(--sub); font-size:13px; margin-top:8px;}
+  .note{border-left:4px solid var(--blue); background:var(--blue-bg); border-radius:0 10px 10px 0; padding:12px 16px; margin:12px 0; font-size:14px;}
+  .note.warn{border-color:var(--orange); background:var(--orange-bg);}
+  .note.good{border-color:var(--green); background:var(--green-bg);}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media(max-width:680px){ .grid2{grid-template-columns:1fr;} }
+  .card{border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:#fff;}
+  .card h4{font-size:15px; margin-bottom:6px;}
+  .card p{font-size:13.5px; color:var(--sub); margin:0;}
+  .price{color:var(--green); font-weight:700;}
+  .kpi{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:12px 0;}
+  .kpi .k{border:1px solid var(--line); border-radius:10px; padding:10px 14px; background:#fbfcfe;}
+  .kpi .k b{display:block; font-size:18px; color:var(--blue);}
+  .kpi .k span{font-size:13px; color:var(--sub);}
+  .phase{border:1px solid var(--line); border-left:5px solid var(--blue); border-radius:10px; padding:14px 18px; margin:12px 0; background:#fbfcfe;}
+  .phase h4{font-size:15px; margin-bottom:4px;}
+  .phase .meta{font-size:13px; color:var(--sub); margin-bottom:6px;}
+  .checklist{list-style:none; padding-left:0;}
+  .checklist li{padding-left:24px; position:relative;}
+  .checklist li::before{content:"✔"; position:absolute; left:2px; color:var(--green); font-size:13px;}
+  footer{color:var(--sub); font-size:13px; text-align:center; margin-top:30px;}
+  @media print{ body{background:#fff;} section{border:none; padding:10px 0;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>鞋服店铺进销存记账软件 · 完整实施方案</h1>
+  <p>进货 · 销售 · 赠送 · 库存 · 记账 · 利润核算，一部手机 + 一台电脑即可运转，<b>无需购买任何服务器</b>。</p>
+  <div class="tags">
+    <span class="tag">零服务器</span><span class="tag">手机+电脑通用</span><span class="tag">离线可用</span><span class="tag">数据归自己</span><span class="tag">可逐步升级</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <b>方案目录</b>
+  <ol>
+    <li><a href="#s1">一、现状与需求分析</a></li>
+    <li><a href="#s2">二、总体架构方案</a></li>
+    <li><a href="#s3">三、功能模块规划</a></li>
+    <li><a href="#s4">四、核心操作流程图</a></li>
+    <li><a href="#s5">五、界面操作图（手机/电脑）</a></li>
+    <li><a href="#s6">六、数据模型设计</a></li>
+    <li><a href="#s7">七、利润计算方法</a></li>
+    <li><a href="#s8">八、实施路线图</a></li>
+    <li><a href="#s9">九、日常使用规范</a></li>
+    <li><a href="#s10">十、成本与风险</a></li>
+    <li><a href="#s11">＋补充：条码与扫码（款级条码 + 生成打印）</a></li>
+  </ol>
+</nav>
+
+<!-- ==================== 一、需求分析 ==================== -->
+<section id="s1">
+  <h2><span class="no">1</span>现状与需求分析</h2>
+  <p class="lead">先把你现在"手工记账乱"的根源拆开看，才能对症下药。</p>
+
+  <h3>手工记账的典型痛点</h3>
+  <ul>
+    <li><b>账分多处</b>：进货记一个本、销售记一个本、库存靠脑子记，月底对不上。</li>
+    <li><b>鞋服特有的复杂度</b>：同一款鞋有多个<b>颜色 × 尺码</b>，库存必须精确到"款-色-码"这一级，普通记账软件管不了。</li>
+    <li><b>赠送说不清</b>：送出去的货既没收入也不是"卖丢的"，手工账里通常直接消失，导致库存越对越乱、利润虚高。</li>
+    <li><b>欠款没台账</b>：赊账进货（欠供应商）和赊账销售（客户欠你）只记在脑子里。</li>
+    <li><b>利润算不清</b>：只记收入不记成本，月底不知道到底赚了多少。</li>
+  </ul>
+
+  <h3>软件必须覆盖的 7 大需求</h3>
+  <table>
+    <tr><th>需求</th><th>具体场景</th><th>优先级</th></tr>
+    <tr><td>商品档案</td><td>新款建档：款号、名称、品牌、类别、颜色、尺码段、进价、售价、条码</td><td>★★★</td></tr>
+    <tr><td>进货管理</td><td>录入进货单（按色码明细）、统计应付与欠款</td><td>★★★</td></tr>
+    <tr><td>销售管理</td><td>快速开单、改价、折扣、退换货、多种收款方式</td><td>★★★</td></tr>
+    <tr><td>赠送管理</td><td>赠品/样品/自用出库，单独记账不计收入</td><td>★★★</td></tr>
+    <tr><td>库存管理</td><td>按款-色-码实时库存、低库存预警、盘点</td><td>★★★</td></tr>
+    <tr><td>记账与欠款</td><td>收支流水、供应商应付款、客户应收款</td><td>★★☆</td></tr>
+    <tr><td>利润报表</td><td>日/月销售额、毛利、净利参考、畅销款排行</td><td>★★☆</td></tr>
+  </table>
+</section>
+
+<!-- ==================== 二、总体架构 ==================== -->
+<section id="s2">
+  <h2><span class="no">2</span>总体架构方案（零服务器）</h2>
+  <p class="lead">核心思路：<b>做一个纯网页应用（Web App）</b>，手机和电脑用浏览器打开就能用，数据存在设备本地，不依赖任何服务器。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 920 430" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <defs>
+        <marker id="ar" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#94a3b8"/></marker>
+        <marker id="arb" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#2563eb"/></marker>
+      </defs>
+      <!-- 设备层 -->
+      <rect x="70" y="20" width="240" height="86" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="190" y="52" text-anchor="middle" font-size="16" font-weight="700" fill="#1e3a8a">📱 手机端</text>
+      <text x="190" y="76" text-anchor="middle" font-size="12.5" fill="#475569">浏览器 / 微信打开 → 添加到主屏幕</text>
+      <text x="190" y="94" text-anchor="middle" font-size="12.5" fill="#475569">像 App 一样全屏使用，随时开单</text>
+
+      <rect x="430" y="20" width="240" height="86" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="550" y="52" text-anchor="middle" font-size="16" font-weight="700" fill="#1e3a8a">💻 电脑端</text>
+      <text x="550" y="76" text-anchor="middle" font-size="12.5" fill="#475569">浏览器打开 / 双击本地文件</text>
+      <text x="550" y="94" text-anchor="middle" font-size="12.5" fill="#475569">适合录进货单、看报表、批量管理</text>
+
+      <!-- 应用层 -->
+      <rect x="150" y="160" width="440" height="92" rx="14" fill="#2563eb"/>
+      <text x="370" y="192" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">鞋服店进销存系统（纯网页应用）</text>
+      <text x="370" y="216" text-anchor="middle" font-size="13" fill="#dbeafe">HTML + CSS + JavaScript 单页应用</text>
+      <text x="370" y="236" text-anchor="middle" font-size="13" fill="#dbeafe">无需安装 · 无需服务器 · 断网也能用</text>
+
+      <path d="M190,106 L190,160" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)" fill="none"/>
+      <path d="M550,106 L550,160" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)" fill="none"/>
+
+      <!-- 存储层 -->
+      <rect x="60" y="300" width="330" height="100" rx="12" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
+      <text x="225" y="330" text-anchor="middle" font-size="15" font-weight="700" fill="#065f46">🗄️ 本地数据库（默认）</text>
+      <text x="225" y="354" text-anchor="middle" font-size="12.5" fill="#334155">IndexedDB / localStorage</text>
+      <text x="225" y="374" text-anchor="middle" font-size="12.5" fill="#334155">数据保存在你自己的手机/电脑里</text>
+      <text x="225" y="394" text-anchor="middle" font-size="12.5" fill="#334155">不联网、不收费、隐私 100% 归你</text>
+
+      <rect x="430" y="300" width="330" height="100" rx="12" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.5" stroke-dasharray="6 4"/>
+      <text x="595" y="330" text-anchor="middle" font-size="15" font-weight="700" fill="#5b21b6">☁️ 跨设备同步（可选升级）</text>
+      <text x="595" y="354" text-anchor="middle" font-size="12.5" fill="#334155">方式一：导出 JSON 备份文件互传（免费）</text>
+      <text x="595" y="374" text-anchor="middle" font-size="12.5" fill="#334155">方式二：接入免费云同步额度（如腾讯云 CloudBase）</text>
+      <text x="595" y="394" text-anchor="middle" font-size="12.5" fill="#334155">仍然不需要自己买服务器</text>
+
+      <path d="M300,252 L230,300" stroke="#059669" stroke-width="2" marker-end="url(#ar)" fill="none"/>
+      <path d="M440,252 L570,300" stroke="#7c3aed" stroke-width="2" marker-end="url(#ar)" stroke-dasharray="6 4" fill="none"/>
+      <text x="268" y="284" font-size="12" fill="#059669">自动保存</text>
+      <text x="492" y="284" font-size="12" fill="#7c3aed">需要时开启</text>
+    </svg>
+    <div class="figcap">图 1 · 总体架构：手机与电脑打开同一个网页应用，数据默认存本地，可选云同步</div>
+  </div>
+
+  <h3>为什么选"纯网页应用"而不是买现成软件？</h3>
+  <div class="grid2">
+    <div class="card"><h4>✔ 数据完全归自己</h4><p>不用把进货价、利润这些商业机密交给第三方 SaaS 平台；本地数据随时导出。</p></div>
+    <div class="card"><h4>✔ 零成本零维护</h4><p>没有服务器租金、没有年费、没有宕机风险；一个文件就是一个系统。</p></div>
+    <div class="card"><h4>✔ 完全贴合鞋服业务</h4><p>颜色×尺码库存、赠送记账这些功能，通用记账软件几乎都做不了，定制开发则要上万。</p></div>
+    <div class="card"><h4>✔ 手机电脑同一套数据界面</h4><p>手机开单快、电脑看报表爽，同一套系统自适应两种屏幕。</p></div>
+  </div>
+
+  <h3>技术选型（最终落地用）</h3>
+  <table>
+    <tr><th>项目</th><th>选型</th><th>说明</th></tr>
+    <tr><td>前端技术</td><td>HTML + CSS + JavaScript（原生，零依赖）</td><td>单文件即可运行，双击就能打开，永不"过时停服"</td></tr>
+    <tr><td>数据存储</td><td>IndexedDB（主体）+ localStorage（设置项）</td><td>浏览器内置数据库，可存数万条单据不卡顿</td></tr>
+    <tr><td>手机使用方式</td><td>浏览器打开 → "添加到主屏幕"（PWA）；<b>为使用摄像头扫码，建议托管到免费 https 静态空间</b></td><td>图标和原生 App 一样，全屏、离线可用；数据仍存手机本地，服务端不存任何数据</td></tr>
+    <tr><td>条码与扫码</td><td><b>同款共用一个条码（款级）</b>；实时扫码 + 拍照识别 + 手写输入三级兜底</td><td>扫码显示售价/颜色/尺码/库存矩阵并可直接销售；详见 PRD 第 11 节</td></tr>
+    <tr><td>编码自动生成</td><td>填 名称/类别/颜色/号码 → 款号（类别字母+3位流水）→ SKU id（款号+色序+尺码码，内部主键）→ 条码 CODE128(款号)</td><td>例：款号 X001 / id X0010138 / 条码 CODE128(X001)；<b>同款共用一个条码</b></td></tr>
+    <tr><td>条码生成与打印</td><td><b>手机蓝牙直连热敏不干胶标签机</b>，40×30mm @203dpi，TSPL / ESC-POS 指令适配</td><td>手机上建档即可直接打标签（产品名+颜色+号码+价格+条码），无需电脑</td></tr>
+    <tr><td>电脑使用方式</td><td>浏览器打开本地文件，或打包成桌面 App</td><td>Mac/Windows 均可双击运行</td></tr>
+    <tr><td>数据同步</td><td>阶段一：JSON 备份导入导出；阶段二：免费云同步</td><td>先跑起来，再按需升级</td></tr>
+    <tr><td>备份方式</td><td>一键导出 JSON 文件 → 微信传输助手 / 网盘 / U盘</td><td>多重备份，防手机丢失</td></tr>
+  </table>
+
+  <div class="note good"><b>结论：</b>你现有的设备（一部手机 + 一台联网电脑）<b>完全够用</b>，不需要购买任何额外硬件。唯一要求是养成"每天关店备份一次"的习惯（软件会做成一键操作）。</div>
+</section>
+
+<!-- ==================== 三、功能模块 ==================== -->
+<section id="s3">
+  <h2><span class="no">3</span>功能模块规划</h2>
+  <p class="lead">系统共 8 个模块，图中每个模块下列出第一版就具备的核心功能。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 920 560" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <rect x="330" y="14" width="260" height="52" rx="10" fill="#1e3a8a"/>
+      <text x="460" y="46" text-anchor="middle" font-size="17" font-weight="700" fill="#fff">鞋服店进销存记账系统</text>
+      <path d="M460,66 L460,86" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>
+      <line x1="130" y1="86" x2="790" y2="86" stroke="#94a3b8" stroke-width="2"/>
+      <path d="M130,86 L130,106" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>
+      <path d="M340,86 L340,106" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>
+      <path d="M580,86 L580,106" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>
+      <path d="M790,86 L790,106" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar)"/>
+
+      <!-- Row 1 -->
+      <g>
+        <rect x="20" y="106" width="220" height="150" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+        <text x="130" y="134" text-anchor="middle" font-size="15" font-weight="700" fill="#1e3a8a">📦 商品档案</text>
+        <text x="36" y="160" font-size="12.5" fill="#334155">• 款号/名称/品牌/类别</text>
+        <text x="36" y="182" font-size="12.5" fill="#334155">• 颜色 × 尺码矩阵（核心）</text>
+        <text x="36" y="204" font-size="12.5" fill="#334155">• 进价 / 售价 / 条码</text>
+        <text x="36" y="226" font-size="12.5" fill="#334155">• 图片（可选）</text>
+      </g>
+      <g>
+        <rect x="250" y="106" width="220" height="150" rx="12" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
+        <text x="360" y="134" text-anchor="middle" font-size="15" font-weight="700" fill="#065f46">🚚 进货管理</text>
+        <text x="266" y="160" font-size="12.5" fill="#334155">• 进货单：按色码录明细</text>
+        <text x="266" y="182" font-size="12.5" fill="#334155">• 供应商选择 / 新增</text>
+        <text x="266" y="204" font-size="12.5" fill="#334155">• 已付 / 欠款自动记账</text>
+        <text x="266" y="226" font-size="12.5" fill="#334155">• 进货退货（退供应商）</text>
+      </g>
+      <g>
+        <rect x="480" y="106" width="220" height="150" rx="12" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5"/>
+        <text x="590" y="134" text-anchor="middle" font-size="15" font-weight="700" fill="#92400e">🛒 销售管理</text>
+        <text x="496" y="160" font-size="12.5" fill="#334155">• 快速开单（搜索/扫码）</text>
+        <text x="496" y="182" font-size="12.5" fill="#334155">• 改价 / 折扣 / 抹零</text>
+        <text x="496" y="204" font-size="12.5" fill="#334155">• 现金/微信/支付宝/欠款</text>
+        <text x="496" y="226" font-size="12.5" fill="#334155">• 销售退货（红冲）</text>
+      </g>
+      <g>
+        <rect x="710" y="106" width="190" height="150" rx="12" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.5"/>
+        <text x="805" y="134" text-anchor="middle" font-size="15" font-weight="700" fill="#991b1b">🎁 赠送管理</text>
+        <text x="726" y="160" font-size="12.5" fill="#334155">• 赠品/样品/自用出库</text>
+        <text x="726" y="182" font-size="12.5" fill="#334155">• 不计收入，单独记成本</text>
+        <text x="726" y="204" font-size="12.5" fill="#334155">• 月末赠送报表</text>
+        <text x="726" y="226" font-size="12.5" fill="#334155">• 原因备注</text>
+      </g>
+
+      <!-- Row 2 -->
+      <path d="M460,470 L460,488" stroke="#94a3b8" stroke-width="0"/>
+      <g>
+        <rect x="20" y="290" width="220" height="150" rx="12" fill="#f0fdfa" stroke="#5eead4" stroke-width="1.5"/>
+        <text x="130" y="318" text-anchor="middle" font-size="15" font-weight="700" fill="#134e4a">📋 库存管理</text>
+        <text x="36" y="344" font-size="12.5" fill="#334155">• 款-色-码 三级实时库存</text>
+        <text x="36" y="366" font-size="12.5" fill="#334155">• 低库存预警（自定义阈值）</text>
+        <text x="36" y="388" font-size="12.5" fill="#334155">• 库存盘点（账实核对）</text>
+        <text x="36" y="410" font-size="12.5" fill="#334155">• 库存变动明细流水</text>
+      </g>
+      <g>
+        <rect x="250" y="290" width="220" height="150" rx="12" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.5"/>
+        <text x="360" y="318" text-anchor="middle" font-size="15" font-weight="700" fill="#5b21b6">💰 记账中心</text>
+        <text x="266" y="344" font-size="12.5" fill="#334155">• 收支流水（自动+手工）</text>
+        <text x="266" y="366" font-size="12.5" fill="#334155">• 供应商应付款台账</text>
+        <text x="266" y="388" font-size="12.5" fill="#334155">• 客户应收欠款台账</text>
+        <text x="266" y="410" font-size="12.5" fill="#334155">• 房租水电等固定支出</text>
+      </g>
+      <g>
+        <rect x="480" y="290" width="220" height="150" rx="12" fill="#fdf2f8" stroke="#f9a8d4" stroke-width="1.5"/>
+        <text x="590" y="318" text-anchor="middle" font-size="15" font-weight="700" fill="#9d174d">📊 报表与利润</text>
+        <text x="496" y="344" font-size="12.5" fill="#334155">• 日/月/年销售报表</text>
+        <text x="496" y="366" font-size="12.5" fill="#334155">• 毛利 / 净利参考</text>
+        <text x="496" y="388" font-size="12.5" fill="#334155">• 畅销款 / 滞销款排行</text>
+        <text x="496" y="410" font-size="12.5" fill="#334155">• 库存资金占用</text>
+      </g>
+      <g>
+        <rect x="710" y="290" width="190" height="150" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+        <text x="805" y="318" text-anchor="middle" font-size="15" font-weight="700" fill="#334155">🛡️ 数据安全</text>
+        <text x="726" y="344" font-size="12.5" fill="#334155">• 一键导出备份文件</text>
+        <text x="726" y="366" font-size="12.5" fill="#334155">• 备份恢复（导入）</text>
+        <text x="726" y="388" font-size="12.5" fill="#334155">• 支持密码锁屏</text>
+        <text x="726" y="410" font-size="12.5" fill="#334155">• 操作日志</text>
+      </g>
+      <text x="460" y="480" text-anchor="middle" font-size="12.5" fill="#94a3b8">—— 所有单据保存时自动联动：库存增减 · 流水记账 · 欠款更新，不需要手工二次登记 ——</text>
+    </svg>
+    <div class="figcap">图 2 · 系统功能模块全景图（8 大模块）</div>
+  </div>
+</section>
+
+<!-- ==================== 四、操作流程 ==================== -->
+<section id="s4">
+  <h2><span class="no">4</span>核心操作流程图</h2>
+  <p class="lead">左边是你手动做的事（每步都只需点几下），右边是系统自动完成的记账动作——这正是"不再乱"的关键。</p>
+
+  <h3>流程一：进货入库（新款到货）</h3>
+  <div class="figure">
+    <svg viewBox="0 0 920 520" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <defs><marker id="ar2" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#2563eb"/></marker></defs>
+      <rect x="20" y="12" width="500" height="30" rx="8" fill="#eff6ff"/>
+      <text x="270" y="33" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a8a">👤 你要做的操作</text>
+      <rect x="560" y="12" width="340" height="30" rx="8" fill="#ecfdf5"/>
+      <text x="730" y="33" text-anchor="middle" font-size="14" font-weight="700" fill="#065f46">⚙️ 系统自动完成</text>
+      <line x1="545" y1="12" x2="545" y2="510" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="4 4"/>
+
+      <!-- steps -->
+      <g>
+        <rect x="40" y="60" width="460" height="58" rx="10" fill="#fff" stroke="#93c5fd" stroke-width="1.5"/>
+        <circle cx="66" cy="89" r="14" fill="#2563eb"/><text x="66" y="94" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">1</text>
+        <text x="92" y="84" font-size="13.5" font-weight="600" fill="#1e293b">新款先建档（30秒）</text>
+        <text x="92" y="104" font-size="12" fill="#64748b">录入款号、名称、颜色、尺码段、进价、售价（老款跳过）</text>
+      </g>
+      <path d="M270,118 L270,140" stroke="#2563eb" stroke-width="2" marker-end="url(#ar2)"/>
+
+      <g>
+        <rect x="40" y="142" width="460" height="58" rx="10" fill="#fff" stroke="#93c5fd" stroke-width="1.5"/>
+        <circle cx="66" cy="171" r="14" fill="#2563eb"/><text x="66" y="176" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">2</text>
+        <text x="92" y="166" font-size="13.5" font-weight="600" fill="#1e293b">开进货单：选供应商 → 添加明细</text>
+        <text x="92" y="186" font-size="12" fill="#64748b">每个"款-色-码"填数量和进货单价，支持批量填</text>
+      </g>
+      <path d="M270,200 L270,222" stroke="#2563eb" stroke-width="2" marker-end="url(#ar2)"/>
+
+      <g>
+        <rect x="40" y="224" width="460" height="58" rx="10" fill="#fff" stroke="#93c5fd" stroke-width="1.5"/>
+        <circle cx="66" cy="253" r="14" fill="#2563eb"/><text x="66" y="258" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">3</text>
+        <text x="92" y="248" font-size="13.5" font-weight="600" fill="#1e293b">核对总金额，填"本次已付款"</text>
+        <text x="92" y="268" font-size="12" fill="#64748b">全付填总额；没付填 0；付一部分填实付数</text>
+      </g>
+      <path d="M270,282 L270,304" stroke="#2563eb" stroke-width="2" marker-end="url(#ar2)"/>
+
+      <g>
+        <rect x="40" y="306" width="460" height="58" rx="10" fill="#2563eb"/>
+        <circle cx="66" cy="335" r="14" fill="#fff"/><text x="66" y="340" text-anchor="middle" font-size="13" fill="#2563eb" font-weight="700">4</text>
+        <text x="92" y="330" font-size="13.5" font-weight="600" fill="#fff">点【确认入库】→ 完成</text>
+        <text x="92" y="350" font-size="12" fill="#dbeafe">进货单自动编号保存，可随时查、可打印</text>
+      </g>
+
+      <!-- auto side -->
+      <g>
+        <rect x="580" y="60" width="300" height="78" rx="10" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
+        <text x="600" y="86" font-size="13" font-weight="700" fill="#065f46">✔ 库存自动增加</text>
+        <text x="600" y="108" font-size="12" fill="#334155">每个款-色-码的数量立即 +N，</text>
+        <text x="600" y="126" font-size="12" fill="#334155">并生成一条库存变动流水</text>
+      </g>
+      <g>
+        <rect x="580" y="170" width="300" height="78" rx="10" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
+        <text x="600" y="196" font-size="13" font-weight="700" fill="#065f46">✔ 支出与欠款自动记账</text>
+        <text x="600" y="218" font-size="12" fill="#334155">已付部分 → 记"进货支出"流水；</text>
+        <text x="600" y="236" font-size="12" fill="#334155">未付部分 → 计入该供应商应付款台账</text>
+      </g>
+      <g>
+        <rect x="580" y="286" width="300" height="78" rx="10" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
+        <text x="600" y="312" font-size="13" font-weight="700" fill="#065f46">✔ 成本价自动更新</text>
+        <text x="600" y="334" font-size="12" fill="#334155">商品档案的"最新进价"自动刷新，</text>
+        <text x="600" y="352" font-size="12" fill="#334155">供后续利润核算使用</text>
+      </g>
+      <path d="M500,335 L556,100" stroke="#059669" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#ar2)"/>
+      <path d="M500,335 L556,209" stroke="#059669" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <path d="M500,335 L556,325" stroke="#059669" stroke-width="1.5" stroke-dasharray="4 3"/>
+
+      <rect x="40" y="396" width="840" height="60" rx="10" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5"/>
+      <text x="60" y="420" font-size="13" font-weight="700" fill="#92400e">💡 实际耗时参考</text>
+      <text x="60" y="440" font-size="12.5" fill="#78350f">新款建档 30 秒 + 录一张 10 行明细的进货单约 2 分钟。以后补货同一款只需选款填数量，1 分钟内完成。</text>
+    </svg>
+    <div class="figcap">图 3 · 进货入库流程（左侧人工操作，右侧系统自动记账）</div>
+  </div>
+
+  <h3>流程二：销售开单（含赠送，日常最高频操作）</h3>
+  <div class="figure">
+    <svg viewBox="0 0 920 620" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <defs><marker id="ar3" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#d97706"/></marker>
+      <marker id="ar4" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#dc2626"/></marker></defs>
+
+      <g>
+        <rect x="60" y="16" width="300" height="58" rx="10" fill="#fff" stroke="#fcd34d" stroke-width="1.5"/>
+        <circle cx="86" cy="45" r="14" fill="#d97706"/><text x="86" y="50" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">1</text>
+        <text x="112" y="40" font-size="13.5" font-weight="600" fill="#1e293b">手机点【开单】</text>
+        <text x="112" y="60" font-size="12" fill="#64748b">首页大按钮，1 秒进入</text>
+      </g>
+      <path d="M360,45 L420,45" stroke="#d97706" stroke-width="2" marker-end="url(#ar3)"/>
+
+      <g>
+        <rect x="424" y="16" width="300" height="58" rx="10" fill="#fff" stroke="#fcd34d" stroke-width="1.5"/>
+        <circle cx="450" cy="45" r="14" fill="#d97706"/><text x="450" y="50" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">2</text>
+        <text x="476" y="40" font-size="13.5" font-weight="600" fill="#1e293b">搜索/扫码选商品 → 填数量</text>
+        <text x="476" y="60" font-size="12" fill="#64748b">支持按款号、名称、条码搜索</text>
+      </g>
+
+      <path d="M574,74 L574,110" stroke="#d97706" stroke-width="2" marker-end="url(#ar3)"/>
+      <!-- decision -->
+      <polygon points="574,114 744,160 574,206 404,160" fill="#fff" stroke="#d97706" stroke-width="1.5"/>
+      <text x="574" y="154" text-anchor="middle" font-size="13.5" font-weight="700" fill="#92400e">这批货是？</text>
+      <text x="574" y="176" text-anchor="middle" font-size="12" fill="#78350f">（一单里可混合：部分卖部分送）</text>
+
+      <!-- left branch: sale -->
+      <path d="M404,160 L200,160 L200,236" stroke="#d97706" stroke-width="2" marker-end="url(#ar3)" fill="none"/>
+      <text x="300" y="150" font-size="12.5" font-weight="700" fill="#d97706">卖给顾客 🛒</text>
+      <g>
+        <rect x="70" y="240" width="260" height="96" rx="10" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5"/>
+        <text x="90" y="266" font-size="13.5" font-weight="700" fill="#92400e">3a. 确认价格</text>
+        <text x="90" y="288" font-size="12" fill="#78350f">默认带出售价，可当场改价/打折/抹零</text>
+        <text x="90" y="308" font-size="12" fill="#78350f">会员或熟客可挂账</text>
+      </g>
+      <path d="M200,336 L200,370" stroke="#d97706" stroke-width="2" marker-end="url(#ar3)"/>
+      <g>
+        <rect x="70" y="374" width="260" height="78" rx="10" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5"/>
+        <text x="90" y="400" font-size="13.5" font-weight="700" fill="#92400e">3b. 选收款方式</text>
+        <text x="90" y="422" font-size="12" fill="#78350f">现金 / 微信 / 支付宝 / 欠款挂账</text>
+        <text x="90" y="440" font-size="12" fill="#78350f">（可组合收款）</text>
+      </g>
+
+      <!-- right branch: gift -->
+      <path d="M744,160 L740,160 L740,236" stroke="#dc2626" stroke-width="2" marker-end="url(#ar4)" fill="none"/>
+      <text x="762" y="150" font-size="12.5" font-weight="700" fill="#dc2626">赠送 🎁</text>
+      <g>
+        <rect x="610" y="240" width="260" height="78" rx="10" fill="#fef2f2" stroke="#fca5a5" stroke-width="1.5"/>
+        <text x="630" y="266" font-size="13.5" font-weight="700" fill="#991b1b">3a'. 标记为"赠送"</text>
+        <text x="630" y="288" font-size="12" fill="#7f1d1d">选原因：赠品 / 样品 / 自用 / 破损</text>
+        <text x="630" y="306" font-size="12" fill="#7f1d1d">金额自动按成本记账，不计收入</text>
+      </g>
+
+      <!-- merge -->
+      <path d="M200,452 L200,486 L420,486" stroke="#d97706" stroke-width="2" fill="none"/>
+      <path d="M740,318 L740,486 L470,486" stroke="#dc2626" stroke-width="2" fill="none"/>
+      <path d="M445,486 L445,506" stroke="#2563eb" stroke-width="2.5" marker-end="url(#ar2)" fill="none"/>
+      <g>
+        <rect x="330" y="510" width="230" height="54" rx="10" fill="#2563eb"/>
+        <text x="445" y="533" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">4. 保存出单 ✔</text>
+        <text x="445" y="553" text-anchor="middle" font-size="11.5" fill="#dbeafe">库存·流水·欠款 一步到位</text>
+      </g>
+      <path d="M560,537 L640,537" stroke="#059669" stroke-width="2" marker-end="url(#ar2)"/>
+      <g>
+        <rect x="644" y="500" width="250" height="76" rx="10" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
+        <text x="662" y="524" font-size="12.5" font-weight="700" fill="#065f46">系统自动：库存 −N</text>
+        <text x="662" y="544" font-size="12" fill="#334155">销售→记收入流水；赠送→记成本流水</text>
+        <text x="662" y="562" font-size="12" fill="#334155">欠款→自动更新客户应收台账</text>
+      </g>
+    </svg>
+    <div class="figcap">图 4 · 销售开单流程（同一张单可混合"销售 + 赠送"，赠送走红色分支单独记账）</div>
+  </div>
+</section>
+
+<!-- ==================== 五、界面操作图 ==================== -->
+<section id="s5">
+  <h2><span class="no">5</span>界面操作图</h2>
+  <p class="lead">同一套系统自动适配两种屏幕：手机竖屏操作、电脑宽屏管理。</p>
+
+  <h3>手机端（店员日常用：开单、查库存、收款）</h3>
+  <div class="figure">
+    <svg viewBox="0 0 920 500" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <!-- phone 1: 首页 -->
+      <g>
+        <rect x="40" y="20" width="240" height="440" rx="26" fill="#0f172a"/>
+        <rect x="48" y="28" width="224" height="424" rx="20" fill="#f8fafc"/>
+        <rect x="120" y="34" width="80" height="12" rx="6" fill="#0f172a"/>
+        <text x="160" y="70" text-anchor="middle" font-size="14" font-weight="700" fill="#1e293b">今日概览</text>
+        <rect x="60" y="84" width="200" height="54" rx="10" fill="#eff6ff"/>
+        <text x="74" y="107" font-size="11" fill="#64748b">今日销售额</text>
+        <text x="74" y="128" font-size="18" font-weight="700" fill="#2563eb">¥ 2,860.00</text>
+        <rect x="60" y="146" width="96" height="46" rx="10" fill="#ecfdf5"/>
+        <text x="72" y="165" font-size="10.5" fill="#64748b">今日销量</text>
+        <text x="72" y="183" font-size="14" font-weight="700" fill="#059669">23 件</text>
+        <rect x="164" y="146" width="96" height="46" rx="10" fill="#fef2f2"/>
+        <text x="176" y="165" font-size="10.5" fill="#64748b">库存预警</text>
+        <text x="176" y="183" font-size="14" font-weight="700" fill="#dc2626">5 款</text>
+        <rect x="60" y="204" width="200" height="52" rx="12" fill="#2563eb"/>
+        <text x="160" y="236" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">🛒 立即开单</text>
+        <rect x="60" y="266" width="96" height="44" rx="10" fill="#fff" stroke="#e2e8f0"/>
+        <text x="108" y="293" text-anchor="middle" font-size="11.5" fill="#334155">🚚 进货</text>
+        <rect x="164" y="266" width="96" height="44" rx="10" fill="#fff" stroke="#e2e8f0"/>
+        <text x="212" y="293" text-anchor="middle" font-size="11.5" fill="#334155">📋 库存</text>
+        <rect x="60" y="318" width="96" height="44" rx="10" fill="#fff" stroke="#e2e8f0"/>
+        <text x="108" y="345" text-anchor="middle" font-size="11.5" fill="#334155">💰 记账</text>
+        <rect x="164" y="318" width="96" height="44" rx="10" fill="#fff" stroke="#e2e8f0"/>
+        <text x="212" y="345" text-anchor="middle" font-size="11.5" fill="#334155">📊 报表</text>
+        <rect x="60" y="370" width="200" height="30" rx="8" fill="#fff7ed" stroke="#fdba74"/>
+        <text x="160" y="390" text-anchor="middle" font-size="10.5" fill="#9a3412">⚠ 今日尚未备份，点此一键备份</text>
+        <!-- tabbar -->
+        <rect x="48" y="412" width="224" height="40" rx="0" fill="#fff" stroke="#e2e8f0"/>
+        <text x="80" y="437" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="700">首页</text>
+        <text x="127" y="437" text-anchor="middle" font-size="10" fill="#94a3b8">开单</text>
+        <text x="168" y="437" text-anchor="middle" font-size="10" fill="#94a3b8">库存</text>
+        <text x="208" y="437" text-anchor="middle" font-size="10" fill="#94a3b8">报表</text>
+        <text x="248" y="437" text-anchor="middle" font-size="10" fill="#94a3b8">我的</text>
+      </g>
+      <text x="160" y="482" text-anchor="middle" font-size="13" fill="#475569" font-weight="600">① 首页：今日经营一目了然</text>
+
+      <!-- phone 2: 开单 -->
+      <g>
+        <rect x="340" y="20" width="240" height="440" rx="26" fill="#0f172a"/>
+        <rect x="348" y="28" width="224" height="424" rx="20" fill="#f8fafc"/>
+        <rect x="420" y="34" width="80" height="12" rx="6" fill="#0f172a"/>
+        <text x="460" y="70" text-anchor="middle" font-size="14" font-weight="700" fill="#1e293b">销售开单</text>
+        <rect x="360" y="82" width="200" height="32" rx="16" fill="#fff" stroke="#cbd5e1"/>
+        <text x="374" y="103" font-size="11.5" fill="#94a3b8">🔍 搜款号 / 名称 / 扫码</text>
+        <!-- cart items -->
+        <rect x="360" y="124" width="200" height="42" rx="8" fill="#fff" stroke="#e2e8f0"/>
+        <text x="372" y="141" font-size="11" font-weight="600" fill="#1e293b">小白鞋 A101 · 白/38</text>
+        <text x="372" y="158" font-size="10.5" fill="#64748b">×1　¥129</text>
+        <rect x="490" y="132" width="60" height="24" rx="12" fill="#fef2f2" stroke="#fca5a5"/>
+        <text x="520" y="148" text-anchor="middle" font-size="9.5" fill="#dc2626">赠送🎁</text>
+        <rect x="360" y="172" width="200" height="42" rx="8" fill="#fff" stroke="#e2e8f0"/>
+        <text x="372" y="189" font-size="11" font-weight="600" fill="#1e293b">卫衣 B203 · 黑/M</text>
+        <text x="372" y="206" font-size="10.5" fill="#64748b">×2　¥159</text>
+        <rect x="490" y="180" width="60" height="24" rx="12" fill="#ecfdf5" stroke="#6ee7b7"/>
+        <text x="520" y="196" text-anchor="middle" font-size="9.5" fill="#059669">销售</text>
+        <rect x="360" y="224" width="200" height="26" rx="8" fill="#f1f5f9"/>
+        <text x="372" y="241" font-size="10.5" fill="#64748b">＋ 添加商品（点了变赠送/销售，可切换）</text>
+        <!-- total -->
+        <rect x="360" y="260" width="200" height="44" rx="10" fill="#eff6ff"/>
+        <text x="374" y="278" font-size="11" fill="#64748b">应收合计</text>
+        <text x="374" y="297" font-size="16" font-weight="700" fill="#2563eb">¥ 447.00</text>
+        <text x="548" y="297" font-size="10" fill="#94a3b8" text-anchor="end">赠品1件已扣</text>
+        <!-- payment -->
+        <rect x="360" y="312" width="62" height="30" rx="8" fill="#2563eb"/>
+        <text x="391" y="331" text-anchor="middle" font-size="10" fill="#fff">微信</text>
+        <rect x="428" y="312" width="62" height="30" rx="8" fill="#fff" stroke="#cbd5e1"/>
+        <text x="459" y="331" text-anchor="middle" font-size="10" fill="#475569">现金</text>
+        <rect x="496" y="312" width="64" height="30" rx="8" fill="#fff" stroke="#cbd5e1"/>
+        <text x="528" y="331" text-anchor="middle" font-size="10" fill="#475569">欠款</text>
+        <rect x="360" y="352" width="200" height="44" rx="12" fill="#059669"/>
+        <text x="460" y="380" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">✔ 保存出单</text>
+        <rect x="360" y="404" width="200" height="26" rx="8" fill="#fff7ed"/>
+        <text x="460" y="421" text-anchor="middle" font-size="10" fill="#9a3412">改价 · 折扣 · 退货 按这里</text>
+        <rect x="348" y="412" width="224" height="40" fill="#fff" stroke="#e2e8f0"/>
+        <text x="380" y="437" text-anchor="middle" font-size="10" fill="#94a3b8">首页</text>
+        <text x="427" y="437" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="700">开单</text>
+        <text x="468" y="437" text-anchor="middle" font-size="10" fill="#94a3b8">库存</text>
+        <text x="508" y="437" text-anchor="middle" font-size="10" fill="#94a3b8">报表</text>
+        <text x="548" y="437" text-anchor="middle" font-size="10" fill="#94a3b8">我的</text>
+      </g>
+      <text x="460" y="482" text-anchor="middle" font-size="13" fill="#475569" font-weight="600">② 开单页：销售与赠送同单混合</text>
+
+      <!-- phone 3: 库存 -->
+      <g>
+        <rect x="640" y="20" width="240" height="440" rx="26" fill="#0f172a"/>
+        <rect x="648" y="28" width="224" height="424" rx="20" fill="#f8fafc"/>
+        <rect x="720" y="34" width="80" height="12" rx="6" fill="#0f172a"/>
+        <text x="760" y="70" text-anchor="middle" font-size="14" font-weight="700" fill="#1e293b">库存查询</text>
+        <rect x="660" y="82" width="200" height="32" rx="16" fill="#fff" stroke="#cbd5e1"/>
+        <text x="674" y="103" font-size="11.5" fill="#94a3b8">🔍 搜款号 / 颜色 / 尺码</text>
+        <rect x="660" y="124" width="200" height="58" rx="8" fill="#fff" stroke="#e2e8f0"/>
+        <text x="672" y="143" font-size="11" font-weight="600" fill="#1e293b">小白鞋 A101</text>
+        <rect x="796" y="132" width="52" height="18" rx="9" fill="#fef2f2"/>
+        <text x="822" y="145" text-anchor="middle" font-size="9" fill="#dc2626">缺码!</text>
+        <text x="672" y="160" font-size="10" fill="#64748b">白：35[2] 36[0] 37[3] 38[1] 39[0]</text>
+        <text x="672" y="175" font-size="10" fill="#64748b">黑：36[4] 37[5] 38[6] 39[2] 40[1]</text>
+        <rect x="660" y="190" width="200" height="58" rx="8" fill="#fff" stroke="#e2e8f0"/>
+        <text x="672" y="209" font-size="11" font-weight="600" fill="#1e293b">卫衣 B203</text>
+        <rect x="796" y="198" width="52" height="18" rx="9" fill="#ecfdf5"/>
+        <text x="822" y="211" text-anchor="middle" font-size="9" fill="#059669">充足</text>
+        <text x="672" y="226" font-size="10" fill="#64748b">黑：S[6] M[12] L[9] XL[4]</text>
+        <text x="672" y="241" font-size="10" fill="#64748b">灰：S[3] M[7] L[5] XL[2]</text>
+        <rect x="660" y="256" width="200" height="58" rx="8" fill="#fff" stroke="#e2e8f0"/>
+        <text x="672" y="275" font-size="11" font-weight="600" fill="#1e293b">羽绒服 C305</text>
+        <rect x="796" y="264" width="52" height="18" rx="9" fill="#fff7ed"/>
+        <text x="822" y="277" text-anchor="middle" font-size="9" fill="#d97706">偏低</text>
+        <text x="672" y="292" font-size="10" fill="#64748b">黑：M[3] L[2] XL[0]</text>
+        <text x="672" y="307" font-size="10" fill="#64748b">（点击款号 → 查看该款全部出入明细）</text>
+        <rect x="660" y="324" width="200" height="40" rx="10" fill="#f1f5f9"/>
+        <text x="760" y="349" text-anchor="middle" font-size="11" fill="#475569">库存总览：在售 86 款 / 1,240 件</text>
+        <rect x="660" y="372" width="200" height="32" rx="10" fill="#fff" stroke="#cbd5e1"/>
+        <text x="760" y="393" text-anchor="middle" font-size="11" fill="#475569">📋 开始盘点</text>
+        <rect x="648" y="412" width="224" height="40" fill="#fff" stroke="#e2e8f0"/>
+        <text x="680" y="437" text-anchor="middle" font-size="10" fill="#94a3b8">首页</text>
+        <text x="727" y="437" text-anchor="middle" font-size="10" fill="#94a3b8">开单</text>
+        <text x="768" y="437" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="700">库存</text>
+        <text x="808" y="437" text-anchor="middle" font-size="10" fill="#94a3b8">报表</text>
+        <text x="848" y="437" text-anchor="middle" font-size="10" fill="#94a3b8">我的</text>
+      </g>
+      <text x="760" y="482" text-anchor="middle" font-size="13" fill="#475569" font-weight="600">③ 库存页：精确到色码，预警直观</text>
+    </svg>
+    <div class="figcap">图 5 · 手机端核心三屏（首页 / 开单 / 库存），通过浏览器"添加到主屏幕"后像原生 App 一样使用</div>
+  </div>
+
+  <h3>电脑端（老板管理用：录进货、对账、看报表）</h3>
+  <div class="figure">
+    <svg viewBox="0 0 920 540" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <!-- browser frame -->
+      <rect x="20" y="20" width="880" height="500" rx="14" fill="#fff" stroke="#cbd5e1" stroke-width="1.5"/>
+      <rect x="20" y="20" width="880" height="44" rx="14" fill="#f1f5f9"/>
+      <circle cx="48" cy="42" r="6" fill="#f87171"/><circle cx="68" cy="42" r="6" fill="#fbbf24"/><circle cx="88" cy="42" r="6" fill="#34d399"/>
+      <rect x="120" y="30" width="560" height="24" rx="12" fill="#fff" stroke="#e2e8f0"/>
+      <text x="400" y="47" text-anchor="middle" font-size="12" fill="#94a3b8">📁 进销存系统（本地文件 / 浏览器打开，离线可用）</text>
+      <!-- sidebar -->
+      <rect x="20" y="64" width="170" height="456" fill="#0f172a" rx="0"/>
+      <rect x="20" y="64" width="170" height="50" rx="0" fill="#1e293b"/>
+      <text x="105" y="95" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">👟 我的鞋服店</text>
+      <text x="44" y="140" font-size="12.5" fill="#93c5fd" font-weight="600">📊 经营看板</text>
+      <text x="44" y="168" font-size="12.5" fill="#cbd5e1">🛒 销售记录</text>
+      <text x="44" y="196" font-size="12.5" fill="#cbd5e1">🚚 进货管理</text>
+      <text x="44" y="224" font-size="12.5" fill="#cbd5e1">📋 库存管理</text>
+      <text x="44" y="252" font-size="12.5" fill="#cbd5e1">🎁 赠送记录</text>
+      <text x="44" y="280" font-size="12.5" fill="#cbd5e1">💰 记账中心</text>
+      <text x="44" y="308" font-size="12.5" fill="#cbd5e1">🤝 供应商/客户</text>
+      <text x="44" y="336" font-size="12.5" fill="#cbd5e1">📦 商品档案</text>
+      <text x="44" y="364" font-size="12.5" fill="#cbd5e1">🛡️ 备份与恢复</text>
+      <rect x="32" y="452" width="146" height="52" rx="10" fill="#1e293b"/>
+      <text x="105" y="474" text-anchor="middle" font-size="11" fill="#94a3b8">数据保存在本机</text>
+      <text x="105" y="492" text-anchor="middle" font-size="11" fill="#34d399">上次备份：昨天 21:30</text>
+
+      <!-- main: 经营看板 -->
+      <text x="220" y="100" font-size="16" font-weight="700" fill="#1e293b">经营看板 · 2026年8月</text>
+      <rect x="220" y="116" width="150" height="62" rx="10" fill="#eff6ff"/>
+      <text x="234" y="140" font-size="11" fill="#64748b">本月销售额</text>
+      <text x="234" y="165" font-size="19" font-weight="700" fill="#2563eb">¥ 68,420</text>
+      <rect x="382" y="116" width="150" height="62" rx="10" fill="#ecfdf5"/>
+      <text x="396" y="140" font-size="11" fill="#64748b">本月毛利</text>
+      <text x="396" y="165" font-size="19" font-weight="700" fill="#059669">¥ 21,300</text>
+      <rect x="544" y="116" width="150" height="62" rx="10" fill="#fffbeb"/>
+      <text x="558" y="140" font-size="11" fill="#64748b">净利参考</text>
+      <text x="558" y="165" font-size="19" font-weight="700" fill="#d97706">¥ 15,650</text>
+      <rect x="706" y="116" width="170" height="62" rx="10" fill="#fef2f2"/>
+      <text x="720" y="140" font-size="11" fill="#64748b">客户欠款总额</text>
+      <text x="720" y="165" font-size="19" font-weight="700" fill="#dc2626">¥ 3,200</text>
+
+      <!-- chart -->
+      <rect x="220" y="192" width="380" height="160" rx="10" fill="#fbfcfe" stroke="#e2e8f0"/>
+      <text x="236" y="216" font-size="12.5" font-weight="600" fill="#334155">近 7 日销售额趋势</text>
+      <line x1="250" y1="330" x2="580" y2="330" stroke="#e2e8f0"/>
+      <rect x="262" y="282" width="26" height="48" rx="3" fill="#93c5fd"/>
+      <rect x="308" y="266" width="26" height="64" rx="3" fill="#93c5fd"/>
+      <rect x="354" y="290" width="26" height="40" rx="3" fill="#93c5fd"/>
+      <rect x="400" y="250" width="26" height="80" rx="3" fill="#93c5fd"/>
+      <rect x="446" y="276" width="26" height="54" rx="3" fill="#93c5fd"/>
+      <rect x="492" y="236" width="26" height="94" rx="3" fill="#2563eb"/>
+      <rect x="538" y="262" width="26" height="68" rx="3" fill="#93c5fd"/>
+      <text x="565" y="230" font-size="10" fill="#2563eb" font-weight="600">周六 ¥4,120</text>
+
+      <!-- top products -->
+      <rect x="616" y="192" width="260" height="160" rx="10" fill="#fbfcfe" stroke="#e2e8f0"/>
+      <text x="632" y="216" font-size="12.5" font-weight="600" fill="#334155">畅销款 TOP5（按毛利）</text>
+      <text x="632" y="242" font-size="11.5" fill="#334155">1. 小白鞋 A101</text><text x="860" y="242" font-size="11.5" fill="#059669" text-anchor="end">¥4,860</text>
+      <text x="632" y="266" font-size="11.5" fill="#334155">2. 卫衣 B203</text><text x="860" y="266" font-size="11.5" fill="#059669" text-anchor="end">¥3,120</text>
+      <text x="632" y="290" font-size="11.5" fill="#334155">3. 羽绒服 C305</text><text x="860" y="290" font-size="11.5" fill="#059669" text-anchor="end">¥2,740</text>
+      <text x="632" y="314" font-size="11.5" fill="#334155">4. 牛仔裤 D102</text><text x="860" y="314" font-size="11.5" fill="#059669" text-anchor="end">¥1,980</text>
+      <text x="632" y="338" font-size="11.5" fill="#334155">5. 帆布鞋 E201</text><text x="860" y="338" font-size="11.5" fill="#059669" text-anchor="end">¥1,520</text>
+
+      <!-- pending items -->
+      <rect x="220" y="366" width="656" height="66" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+      <text x="236" y="390" font-size="12.5" font-weight="700" fill="#9a3412">待处理事项</text>
+      <text x="236" y="412" font-size="12" fill="#78350f">① 库存预警 5 款（A101 白/38 断码等）　② 客户张姐欠款 ¥1,200 超 15 天　③ 供应商华强欠款 ¥8,000 未结</text>
+
+      <rect x="220" y="444" width="656" height="56" rx="10" fill="#eff6ff" stroke="#93c5fd"/>
+      <text x="236" y="466" font-size="12" fill="#1e40af">电脑端大屏优势：批量录进货单（表格粘贴）、导出 Excel 报表、打印单据、月末盘点核对。</text>
+      <text x="236" y="488" font-size="12" fill="#1e40af">所有数据与手机端通过备份文件/云同步保持一致。</text>
+    </svg>
+    <div class="figcap">图 6 · 电脑端经营看板（左侧功能菜单 + 数据大屏 + 待办提醒）</div>
+  </div>
+</section>
+
+<!-- ==================== 六、数据模型 ==================== -->
+<section id="s6">
+  <h2><span class="no">6</span>数据模型设计</h2>
+  <p class="lead">单据之间环环相扣，保证"库存、欠款、利润"三本账永远自动一致。</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 920 470" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <defs><marker id="ar5" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#94a3b8"/></marker></defs>
+      <!-- 商品档案 -->
+      <rect x="20" y="30" width="210" height="190" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+      <rect x="20" y="30" width="210" height="34" rx="10" fill="#2563eb"/>
+      <text x="125" y="53" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">商品档案 product</text>
+      <text x="36" y="86" font-size="11.5" fill="#334155">id · 款号（唯一）· 名称</text>
+      <text x="36" y="108" font-size="11.5" fill="#334155">品牌 · 类别（鞋/服/裤…）</text>
+      <text x="36" y="130" font-size="11.5" fill="#334155">颜色列表 · 尺码列表</text>
+      <text x="36" y="152" font-size="11.5" fill="#334155">参考进价 · 默认售价 · 条码</text>
+      <text x="36" y="174" font-size="11.5" fill="#334155">状态（在售/停售）· 图片</text>
+      <text x="36" y="200" font-size="10.5" fill="#94a3b8">库存按"款+色+码"独立计数</text>
+
+      <!-- 进货单 -->
+      <rect x="20" y="260" width="210" height="180" rx="10" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
+      <rect x="20" y="260" width="210" height="34" rx="10" fill="#059669"/>
+      <text x="125" y="283" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">进货单 purchase</text>
+      <text x="36" y="316" font-size="11.5" fill="#334155">单号 · 日期 · 供应商</text>
+      <text x="36" y="338" font-size="11.5" fill="#334155">明细[]：款+色+码+数量+进价</text>
+      <text x="36" y="360" font-size="11.5" fill="#334155">总金额 · 已付金额</text>
+      <text x="36" y="382" font-size="11.5" fill="#334155">欠款金额 · 结清状态</text>
+      <text x="36" y="404" font-size="11.5" fill="#334155">备注 · 附件（拍照留底）</text>
+
+      <!-- 销售单 -->
+      <rect x="355" y="260" width="210" height="180" rx="10" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5"/>
+      <rect x="355" y="260" width="210" height="34" rx="10" fill="#d97706"/>
+      <text x="460" y="283" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">销售单 sale</text>
+      <text x="371" y="316" font-size="11.5" fill="#334155">单号 · 日期 · 客户（可空）</text>
+      <text x="371" y="338" font-size="11.5" fill="#334155">明细[]：款+色+码+数量</text>
+      <text x="371" y="360" font-size="11.5" fill="#334155">　+ 售价 + 进价快照 + 类型</text>
+      <text x="371" y="382" font-size="11.5" fill="#334155">类型：销售/赠送/退货</text>
+      <text x="371" y="404" font-size="11.5" fill="#334155">收款方式 · 已收 · 欠款 · 折扣</text>
+
+      <!-- 库存 -->
+      <rect x="355" y="30" width="210" height="190" rx="10" fill="#f0fdfa" stroke="#5eead4" stroke-width="1.5"/>
+      <rect x="355" y="30" width="210" height="34" rx="10" fill="#0d9488"/>
+      <text x="460" y="53" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">库存 inventory</text>
+      <text x="371" y="86" font-size="11.5" fill="#334155">key = 款号+颜色+尺码</text>
+      <text x="371" y="108" font-size="11.5" fill="#334155">当前数量（实时计算）</text>
+      <text x="371" y="130" font-size="11.5" fill="#334155">预警阈值（按款设置）</text>
+      <text x="371" y="152" font-size="11.5" fill="#334155">变动明细流水：</text>
+      <text x="371" y="174" font-size="11.5" fill="#334155">　进货+/销售−/赠送−/退货+/盘点调整</text>
+      <text x="371" y="200" font-size="10.5" fill="#94a3b8">任何数量变化都可追溯到单据</text>
+
+      <!-- 流水 -->
+      <rect x="690" y="30" width="210" height="190" rx="10" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.5"/>
+      <rect x="690" y="30" width="210" height="34" rx="10" fill="#7c3aed"/>
+      <text x="795" y="53" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">收支流水 ledger</text>
+      <text x="706" y="86" font-size="11.5" fill="#334155">日期 · 类型 · 金额</text>
+      <text x="706" y="108" font-size="11.5" fill="#334155">收入：销售收款/其他</text>
+      <text x="706" y="130" font-size="11.5" fill="#334155">支出：进货付款/房租/水电/</text>
+      <text x="706" y="152" font-size="11.5" fill="#334155">　人工/物流/赠送成本</text>
+      <text x="706" y="174" font-size="11.5" fill="#334155">关联单据号 · 备注</text>
+      <text x="706" y="200" font-size="10.5" fill="#94a3b8">可手工补录（如房租）</text>
+
+      <!-- 往来 -->
+      <rect x="690" y="260" width="210" height="180" rx="10" fill="#fdf2f8" stroke="#f9a8d4" stroke-width="1.5"/>
+      <rect x="690" y="260" width="210" height="34" rx="10" fill="#db2777"/>
+      <text x="795" y="283" text-anchor="middle" font-size="14" font-weight="700" fill="#fff">往来单位 partner</text>
+      <text x="706" y="316" font-size="11.5" fill="#334155">供应商 / 客户（同一张表）</text>
+      <text x="706" y="338" font-size="11.5" fill="#334155">名称 · 电话 · 微信 · 备注</text>
+      <text x="706" y="360" font-size="11.5" fill="#334155">应收余额 / 应付余额</text>
+      <text x="706" y="382" font-size="11.5" fill="#334155">欠款明细（自动累计）</text>
+      <text x="706" y="404" font-size="11.5" fill="#334155">还款/收款记录</text>
+
+      <!-- relations -->
+      <path d="M125,220 L125,260" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar5)"/>
+      <text x="135" y="244" font-size="11" fill="#64748b">进货引用</text>
+      <path d="M230,90 L355,90" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar5)"/>
+      <text x="292" y="82" text-anchor="middle" font-size="11" fill="#64748b">库存维度</text>
+      <path d="M355,340 L230,340" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar5)"/>
+      <text x="292" y="332" text-anchor="middle" font-size="11" fill="#64748b">销售引用</text>
+      <path d="M565,125 L690,125" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar5)"/>
+      <text x="627" y="117" text-anchor="middle" font-size="11" fill="#64748b">自动生成流水</text>
+      <path d="M565,350 L690,350" stroke="#94a3b8" stroke-width="2" marker-end="url(#ar5)"/>
+      <text x="627" y="342" text-anchor="middle" font-size="11" fill="#64748b">欠款自动挂账</text>
+    </svg>
+    <div class="figcap">图 7 · 数据模型关系图（核心 6 张表，单据保存时自动联动）</div>
+  </div>
+
+  <div class="note"><b>关键设计：销售单里保存"进价快照"。</b>每笔销售发生时，把当时该商品的进价一起记进单据。这样无论以后进价怎么涨跌，历史利润永远算得准，不会被后来的调价污染。</div>
+</section>
+
+<!-- ==================== 七、利润计算 ==================== -->
+<section id="s7">
+  <h2><span class="no">7</span>利润计算方法</h2>
+  <p class="lead">不再"只记收入不算成本"，报表里给你三层利润，一眼看清赚在哪里。</p>
+
+  <div class="kpi">
+    <div class="k"><b>① 营业额</b><span>= 所有销售单金额合计（不含赠送）</span></div>
+    <div class="k"><b>② 毛利</b><span>= 销售收入 − 已售商品的进价成本（含退货冲减）</span></div>
+    <div class="k"><b>③ 净利参考</b><span>= 毛利 − 房租/水电/人工/物流/赠送成本等支出</span></div>
+  </div>
+
+  <table>
+    <tr><th>计算项</th><th>口径说明</th><th>示例（某月）</th></tr>
+    <tr><td>销售收入</td><td>销售单实收 + 挂账欠款（权责发生，退货运单红冲）</td><td>¥ 68,420</td></tr>
+    <tr><td>销售成本</td><td>每笔销售按"进价快照"累计</td><td>¥ 47,120</td></tr>
+    <tr><td><b>毛利 / 毛利率</b></td><td>收入 − 成本</td><td><b>¥ 21,300 / 31.1%</b></td></tr>
+    <tr><td>赠送成本</td><td>赠品按进价计，单列（不计入销售成本，避免毛利虚低）</td><td>¥ 860</td></tr>
+    <tr><td>固定与费用支出</td><td>房租、水电、人工、物流、平台费等</td><td>¥ 5,800</td></tr>
+    <tr><td><b>净利参考</b></td><td>毛利 − 赠送成本 − 费用支出</td><td><b>¥ 14,640</b></td></tr>
+    <tr><td>库存资金占用</td><td>当前库存 × 最新进价（压了多少钱在货上）</td><td>¥ 32,500</td></tr>
+  </table>
+
+  <div class="note warn"><b>口径提醒：</b>进货付款 ≠ 当月成本。比如 8 月进 1000 件只卖了 300 件，利润只扣 300 件的成本——这正是很多手工账"感觉没赚却不见钱"的原因：钱变成了库存。报表会同时给出"利润"和"库存资金占用"两个数字。</div>
+</section>
+
+<!-- ==================== 八、实施路线图 ==================== -->
+<section id="s8">
+  <h2><span class="no">8</span>实施路线图（4 个迭代，边用边完善）</h2>
+  <p class="lead">不用等全部做完才开始用——每阶段结束都能立刻上手用起来。</p>
+
+  <div class="phase">
+    <h4>阶段 0 · 需求确认与设计定稿</h4>
+    <div class="meta">耗时：半天 ｜ 交付：最终版原型图 + 字段清单</div>
+    <ul class="checklist">
+      <li>确认你的商品类别（鞋/服装/裤/配饰）、常用尺码段、是否需要条码</li>
+      <li>确认赠送场景细分（赠品/样品/自用/破损）与是否需要拍照留底</li>
+      <li>确认欠款习惯（客户挂账上限、供应商结算周期）</li>
+    </ul>
+  </div>
+
+  <div class="phase" style="border-left-color:#059669">
+    <h4>阶段 1 · 地基：商品档案 + 进货 + 库存（第一周）</h4>
+    <div class="meta">交付：手机/电脑均可用的第一版系统</div>
+    <ul class="checklist">
+      <li>商品档案：款号、颜色尺码矩阵、进售价（支持批量导入 Excel）</li>
+      <li>进货单录入、修改、作废；库存自动增减与流水</li>
+      <li>库存查询（按款/色/码）、低库存预警</li>
+      <li>存量商品初始化：录入现有库存（支持盘点导入）</li>
+      <li>上线动作：把在售款式一次性建档，先只用于"进货 + 查库存"</li>
+    </ul>
+  </div>
+
+  <div class="phase" style="border-left-color:#d97706">
+    <h4>阶段 2 · 核心：销售开单 + 赠送 + 记账（第二周）</h4>
+    <div class="meta">交付：日常经营全流程数字化</div>
+    <ul class="checklist">
+      <li>手机快速开单（搜索、色码选择、改价、折扣、多种收款）</li>
+      <li>赠送出库单独类型；销售退货红冲；进货退货</li>
+      <li>收支流水自动生成 + 手工记账（房租水电等）</li>
+      <li>客户/供应商欠款台账与还款登记</li>
+      <li>上线动作：从此停用手工账本，全部单据走系统</li>
+    </ul>
+  </div>
+
+  <div class="phase" style="border-left-color:#7c3aed">
+    <h4>阶段 3 · 经营：报表利润 + 备份安全（第三周）</h4>
+    <div class="meta">交付：看得懂的经营账</div>
+    <ul class="checklist">
+      <li>经营看板：日/月销售额、三层利润、畅销滞销排行</li>
+      <li>报表导出 Excel / 打印；月末库存盘点与差异调整</li>
+      <li>一键备份导出 JSON、导入恢复；支持设置打开密码</li>
+      <li>上线动作：建立"每日关店一键备份"习惯</li>
+    </ul>
+  </div>
+
+  <div class="phase" style="border-left-color:#db2777">
+    <h4>阶段 4 · 增强：跨设备同步 + 打磨（第四周起，按需）</h4>
+    <div class="meta">交付：手机电脑数据实时一致</div>
+    <ul class="checklist">
+      <li>方案 A（免费）：备份文件互传——手机导出→电脑导入，适合一天同步一两次</li>
+      <li>方案 B（免费额度）：接入云同步（腾讯云 CloudBase 等），手机电脑实时一致</li>
+      <li>扫码枪/条码打印、小票打印机对接（如店里需要）</li>
+      <li>性能优化：万级单据下手机端依然流畅</li>
+    </ul>
+  </div>
+
+  <div class="note good"><b>手机上的使用方式（上线当天就要做）：</b>用手机浏览器打开系统地址 → 菜单选"添加到主屏幕"→ 桌面出现 App 图标 → 点击全屏使用，和微信一样方便。电脑端建议收藏到浏览器书签栏，或打包成双击即开的桌面程序。</div>
+</section>
+
+<!-- ==================== 九、日常规范 ==================== -->
+<section id="s9">
+  <h2><span class="no">9</span>日常使用规范（防"乱账"复发）</h2>
+  <p class="lead">软件解决 90% 的问题，剩下 10% 靠三个简单习惯。</p>
+  <table>
+    <tr><th>频率</th><th>动作</th><th>耗时</th></tr>
+    <tr><td>每笔交易</td><td>当场开单（卖、送、退都要），不留到晚上补记</td><td>10–20 秒/单</td></tr>
+    <tr><td>每次进货</td><td>货到当场录进货单，核对数量与金额后确认入库</td><td>1–2 分钟</td></tr>
+    <tr><td>每天关店</td><td>看一眼"今日概览"对不对 → 点【一键备份】</td><td>1 分钟</td></tr>
+    <tr><td>每周</td><td>导出一份 JSON 备份发到微信传输助手/网盘（异地备份）</td><td>2 分钟</td></tr>
+    <tr><td>每月</td><td>看月报表：毛利、赠送成本、欠款清单；抽盘 10 个款核对库存</td><td>30 分钟</td></tr>
+  </table>
+  <div class="note warn"><b>铁律：</b>手机端数据在本地浏览器里——<b>卸载浏览器/清理缓存/换手机前，必须先导出备份</b>。只要备份文件在（建议电脑 + 网盘各存一份），数据永远丢不了。</div>
+</section>
+
+<!-- ==================== 十、成本与风险 ==================== -->
+<section id="s10">
+  <h2><span class="no">10</span>成本与风险</h2>
+  <table>
+    <tr><th>项目</th><th>费用</th><th>说明</th></tr>
+    <tr><td>软件开发</td><td class="price">¥ 0</td><td>按本方案分阶段实现，可由 AI 辅助直接编写</td></tr>
+    <tr><td>服务器</td><td class="price">¥ 0</td><td>不需要。数据在设备本地，或用免费云同步额度</td></tr>
+    <tr><td>域名/备案</td><td class="price">¥ 0</td><td>本地文件/局域网/免费托管均可，不需要域名</td></tr>
+    <tr><td>硬件</td><td class="price">¥ 0</td><td>现有手机 + 电脑完全满足；扫码可用手机摄像头</td></tr>
+    <tr><td>可选升级</td><td>视需求</td><td>小票打印机（约 ¥150–300）、云存储超额（很低概率，年约几十元）</td></tr>
+  </table>
+
+  <h3>风险与对策</h3>
+  <table>
+    <tr><th>风险</th><th>概率</th><th>对策</th></tr>
+    <tr><td>清缓存/换手机导致数据丢失</td><td>中</td><td>每日一键备份 + 每周异地备份；换机前先导出</td></tr>
+    <tr><td>单设备数据，手机丢失</td><td>低</td><td>备份文件存电脑和网盘；阶段 4 开启云同步后彻底解决</td></tr>
+    <tr><td>大量单据后手机变卡</td><td>低</td><td>用 IndexedDB + 分页加载，数万单据仍流畅</td></tr>
+    <tr><td>录入错误单据</td><td>中</td><td>所有单据可修改/作废并留痕，不做物理删除</td></tr>
+  </table>
+
+  <div class="note"><b>下一步：</b>确认本方案（特别是阶段 0 的几个确认项：尺码段、赠送类型、欠款规则）后，即可从阶段 1 开始动手实现。每个阶段完成都会在你自己的手机和电脑上实际验收，用得顺手了再进入下一阶段。</div>
+</section>
+
+<section id="s11" style="border:2px solid #93c5fd">
+  <h2><span class="no">＋</span>补充：条码与扫码功能（2026-08-30 增补）</h2>
+  <p class="lead">最新要求（2026-08-31）：<b>填「名称、类别、颜色、号码」自动生成款号 / SKU id / 条形码</b>；手机蓝牙直连热敏机打标签；扫码直达该色码看库存并销售。以下内容已同步写入 PRD 第 11 节。</p>
+
+  <h3>0. 编码自动生成（2026-08-31 最新要求）</h3>
+  <div class="note good"><b>建档只填 4 项：名称、类别、颜色、号码</b>（再加进价/售价），系统自动生成<b>款号 → SKU id → 条形码</b>。</div>
+  <div class="figure" style="padding:18px 14px">
+    <svg viewBox="0 0 900 250" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <defs><marker id="en" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#2563eb"/></marker></defs>
+      <text x="24" y="28" font-size="14" font-weight="700" fill="#1e293b">用户只填 4 项</text>
+      <rect x="24" y="42" width="180" height="46" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="114" y="70" text-anchor="middle" font-size="13" fill="#1e3a8a">名称：小白鞋</text>
+      <rect x="216" y="42" width="180" height="46" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="306" y="70" text-anchor="middle" font-size="13" fill="#1e3a8a">类别：鞋</text>
+      <rect x="408" y="42" width="180" height="46" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="498" y="70" text-anchor="middle" font-size="13" fill="#1e3a8a">颜色：白</text>
+      <rect x="600" y="42" width="180" height="46" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="690" y="70" text-anchor="middle" font-size="13" fill="#1e3a8a">号码：38</text>
+      <path d="M450,96 L450,124" stroke="#2563eb" stroke-width="2" marker-end="url(#en)"/>
+      <rect x="120" y="128" width="660" height="52" rx="10" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.5"/>
+      <text x="450" y="152" text-anchor="middle" font-size="13.5" font-weight="700" fill="#5b21b6">系统自动生成：款号 X001　→　SKU id X0010138　→　条码 CODE128(X001)</text>
+      <text x="450" y="172" text-anchor="middle" font-size="12" fill="#334155">款号 = 类别字母 X + 3位流水 001　｜　SKU id = 款号 + 色序 01 + 尺码码 38（内部主键）</text>
+      <text x="24" y="212" font-size="12.5" fill="#334155">• <b>条码 = 款号，同款只用一条码</b>（白/38、白/39、黑/38 的标签条码完全相同，只有文字不同）</text>
+      <text x="24" y="232" font-size="12.5" fill="#334155">• <b>SKU id</b> 每个"颜色+号码"唯一，作为库存与单据的内部主键；扫码后弹库存矩阵，点格子销售</text>
+    </svg>
+    <div class="figcap">图 8 · 填 4 项自动生成款号、SKU id 与条码</div>
+  </div>
+  <table>
+    <tr><th>组成</th><th>规则</th><th>示例</th></tr>
+    <tr><td>类别字母</td><td>鞋 X / 服装 F / 裤 K / 配饰 P / 包袋 B / 其他 O（设置里可自定义）</td><td>鞋 → <code>X</code></td></tr>
+    <tr><td>款流水</td><td>该类别内 3 位递增（001–999），同款共用</td><td>第 1 款 → <code>001</code>，款号 <b>X001</b></td></tr>
+    <tr><td>色序</td><td>同款内按录入顺序自动编号 2 位；同色复用同序号</td><td>白→<code>01</code>，黑→<code>02</code></td></tr>
+    <tr><td>尺码码</td><td>清洗为安全字符：<code>38</code>→38、<code>XL</code>→XL、<code>38.5</code>→385、<code>39/40</code>→39-40</td><td>38 码 → <code>38</code></td></tr>
+    <tr><td>完整 id</td><td>拼接后校验全局唯一，冲突顺延</td><td><b>X0010138</b></td></tr>
+  </table>
+  <p><b>同款判定</b>：名称 + 类别完全相同 → 复用已有款号，只新增 SKU（白/39 → <code>X0010139</code>；黑/38 → <code>X0010238</code>）。<b>重复拦截</b>：同款下"颜色+尺码"已存在则提示不重复生成。<b>款号可手动改</b>（改后同步该款全部 id 与条码，并提示重打标签），<b>id 生成后不可改</b>。</p>
+
+  <h3>1. 条码绑定层级：款级（同款一个条码，条码 = 款号）</h3>
+  <div class="note good"><b>同一个款只用一个条码，不需要每个单件都唯一。</b>条码内容 = 自动生成的款号（如 <code>X001</code>）。<br>每个"颜色+号码"仍自动生成 <b>SKU id</b>（<code>X0010138</code>）作为系统内部主键（库存、单据明细、盘点追溯），但<b>不印进条码</b>。<br>扫码 → 弹出该款的售价与"颜色×尺码"库存矩阵 → 点一下格子就卖出该色码。同款各色码的标签<b>条码相同、文字不同</b>。</div>
+
+  <div class="figure">
+    <svg viewBox="0 0 900 300" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <defs><marker id="bs" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#2563eb"/></marker></defs>
+      <text x="20" y="16" font-size="13" font-weight="700" fill="#1e293b">扫码后的主视图：该款库存矩阵</text>
+      <rect x="20" y="100" width="150" height="90" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="95" y="132" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a8a">📷 扫任意色码条码</text>
+      <text x="95" y="156" text-anchor="middle" font-size="12" fill="#475569">（或查库存时按款查看）</text>
+      <path d="M170,145 L232,145" stroke="#2563eb" stroke-width="2" marker-end="url(#bs)"/>
+      <rect x="236" y="100" width="150" height="90" rx="10" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="311" y="132" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a8a">定位到该款</text>
+      <text x="311" y="156" text-anchor="middle" font-size="12" fill="#475569">条码 → 款号 X001</text>
+      <path d="M386,145 L448,145" stroke="#2563eb" stroke-width="2" marker-end="url(#bs)"/>
+      <rect x="452" y="40" width="420" height="220" rx="12" fill="#fff" stroke="#93c5fd" stroke-width="1.5"/>
+      <text x="470" y="68" font-size="14" font-weight="700" fill="#1e293b">小白鞋 X001</text>
+      <text x="470" y="90" font-size="12.5" fill="#64748b">售价 ¥129　总库存 24 件　最近入库 8/28</text>
+      <text x="470" y="120" font-size="12" fill="#334155" font-weight="600">库存矩阵（行=颜色 / 列=尺码）</text>
+      <!-- matrix header -->
+      <rect x="470" y="132" width="42" height="24" rx="4" fill="#f1f5f9"/><text x="491" y="148" text-anchor="middle" font-size="11" fill="#64748b">色\码</text>
+      <rect x="514" y="132" width="34" height="24" rx="4" fill="#f1f5f9"/><text x="531" y="148" text-anchor="middle" font-size="11" fill="#64748b">36</text>
+      <rect x="550" y="132" width="34" height="24" rx="4" fill="#f1f5f9"/><text x="567" y="148" text-anchor="middle" font-size="11" fill="#64748b">37</text>
+      <rect x="586" y="132" width="34" height="24" rx="4" fill="#f1f5f9"/><text x="603" y="148" text-anchor="middle" font-size="11" fill="#64748b">38</text>
+      <rect x="622" y="132" width="34" height="24" rx="4" fill="#f1f5f9"/><text x="639" y="148" text-anchor="middle" font-size="11" fill="#64748b">39</text>
+      <rect x="658" y="132" width="34" height="24" rx="4" fill="#f1f5f9"/><text x="675" y="148" text-anchor="middle" font-size="11" fill="#64748b">40</text>
+      <!-- row 白 -->
+      <rect x="470" y="158" width="42" height="26" rx="4" fill="#f8fafc"/><text x="491" y="176" text-anchor="middle" font-size="11" fill="#334155">白</text>
+      <rect x="514" y="158" width="34" height="26" rx="4" fill="#ecfdf5" stroke="#6ee7b7"/><text x="531" y="176" text-anchor="middle" font-size="11" fill="#065f46">5</text>
+      <rect x="550" y="158" width="34" height="26" rx="4" fill="#fffbeb" stroke="#fcd34d"/><text x="567" y="176" text-anchor="middle" font-size="11" fill="#92400e">2</text>
+      <rect x="586" y="158" width="34" height="26" rx="4" fill="#fef2f2" stroke="#fca5a5"/><text x="603" y="176" text-anchor="middle" font-size="11" fill="#991b1b">0</text>
+      <rect x="622" y="158" width="34" height="26" rx="4" fill="#ecfdf5" stroke="#6ee7b7"/><text x="639" y="176" text-anchor="middle" font-size="11" fill="#065f46">7</text>
+      <rect x="658" y="158" width="34" height="26" rx="4" fill="#ecfdf5" stroke="#6ee7b7"/><text x="675" y="176" text-anchor="middle" font-size="11" fill="#065f46">4</text>
+      <!-- row 黑 -->
+      <rect x="470" y="186" width="42" height="26" rx="4" fill="#f8fafc"/><text x="491" y="204" text-anchor="middle" font-size="11" fill="#334155">黑</text>
+      <rect x="514" y="186" width="34" height="26" rx="4" fill="#ecfdf5" stroke="#6ee7b7"/><text x="531" y="204" text-anchor="middle" font-size="11" fill="#065f46">3</text>
+      <rect x="550" y="186" width="34" height="26" rx="4" fill="#ecfdf5" stroke="#6ee7b7"/><text x="567" y="204" text-anchor="middle" font-size="11" fill="#065f46">6</text>
+      <rect x="586" y="186" width="34" height="26" rx="4" fill="#ecfdf5" stroke="#6ee7b7"/><text x="603" y="204" text-anchor="middle" font-size="11" fill="#065f46">8</text>
+      <rect x="622" y="186" width="34" height="26" rx="4" fill="#fffbeb" stroke="#fcd34d"/><text x="639" y="204" text-anchor="middle" font-size="11" fill="#92400e">1</text>
+      <rect x="658" y="186" width="34" height="26" rx="4" fill="#f1f5f9"/><text x="675" y="204" text-anchor="middle" font-size="11" fill="#cbd5e1">—</text>
+      <rect x="470" y="226" width="222" height="26" rx="13" fill="#2563eb"/>
+      <text x="581" y="244" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">点格子 → 加入销售单</text>
+      <text x="712" y="244" font-size="11" fill="#64748b">0 灰显不可点 · 黄=低于预警</text>
+      <text x="95" y="228" text-anchor="middle" font-size="12" fill="#64748b">扫一次</text>
+      <text x="311" y="228" text-anchor="middle" font-size="12" fill="#64748b">自动匹配</text>
+    </svg>
+    <div class="figcap">图 8B · 扫码后的主视图：该款库存矩阵（点格子即销售，0 库存灰显）</div>
+  </div>
+
+  <h3>2. 条码从哪来：现成吊牌 + 系统生成</h3>
+  <table>
+    <tr><th>来源</th><th>场景</th><th>处理方式</th></tr>
+    <tr><td>A. 供应商吊牌现成条码</td><td>商品自带条码</td><td>建档点【扫码录入】扫进来，或手工输入</td></tr>
+    <tr><td>B. 系统生成（店内码）</td><td><b>没有现成条码的商品</b></td><td>系统按规则自动生成 → 打印标签 → 贴上即可扫码使用</td></tr>
+  </table>
+  <p><b>生成规则：</b>默认 <b>CODE128</b>（内容=款号，如 <code>A101</code>，支持字母数字，扫码枪与手机都能识别、长度短好打印）；可选 <b>EAN-13 店内码</b>（13 位数字，前缀用国际保留的店内码段 20–29，不会与外部商品码冲突，末位为标准校验位）。生成即写入档案，记录"来源=系统生成 + 生成时间"。</p>
+
+  <h3>3. 条码生成与打印（手机蓝牙直连热敏标签机）</h3>
+  <div class="note good"><b>工作方式已确认：手机上建档 → 蓝牙直连热敏机立刻打出标签 → 贴到商品；销售时扫码 → 看库存 → 点尺码卖。</b>打印机支持蓝牙、手机直连，全流程在手机上完成，不需要电脑常开。</div>
+  <div class="note warn"><b>平台限制（必须知道）：</b>浏览器蓝牙打印依赖 Web Bluetooth，<b>安卓（Chrome / Edge）可用，iPhone 的 Safari 不支持</b>。若是 iPhone，走兜底：生成 PDF/PNG 分享给打印机厂商 App 打印，或加入待打印队列在电脑端打印；界面会自动隐藏蓝牙按钮，不会出现点了没反应的情况。</div>
+  <div class="note"><b>硬件：热敏不干胶标签机（蓝牙）+ 卷装不干胶标签，热敏模式无需碳带。</b>这类机器对<b>尺寸精度和缩放</b>极敏感——一缩放，条码就可能扫不出来，所以以下参数在开发时写死。</div>
+
+  <table>
+    <tr><th>参数</th><th>默认设置</th><th>为什么</th></tr>
+    <tr><td>标签尺寸</td><td><b>40×30mm</b>（可选 50×30 / 60×40 / 30×20）</td><td>条码内容是 4 字符款号，40mm 宽足够；鞋服吊牌、鞋盒最常用</td></tr>
+    <tr><td>分辨率</td><td><b>203dpi</b>（机型支持可切 300dpi）</td><td>40×30mm@203dpi ≈ 320×236px，条码位图按此计算</td></tr>
+    <tr><td>条码类型</td><td>CODE128（内容 = 款号，如 <code>X001</code>）</td><td>约 79 模块，40mm 标签下模块宽 ≈0.44mm，远超 0.25mm 下限，热敏打印清晰</td></tr>
+    <tr><td>条码高度</td><td><b>10mm</b></td><td>低于 8mm 手机摄像头很难识别</td></tr>
+    <tr><td>左右静区</td><td><b>≥2.5mm（模板强制留白）</b></td><td>静区不足是"打出来扫不出"的头号原因</td></tr>
+    <tr><td>字号</td><td>商品名 10pt / 款号·售价 9pt / 条码数字 8pt</td><td>热敏纸小于 8pt 容易糊</td></tr>
+    <tr><td>页面与缩放</td><td><code>@page{size:40mm 30mm;margin:0}</code>，一页一张，<b>强制 100%</b></td><td>纸张尺寸写死，防止浏览器自动缩放到 A4 导致条码变形</td></tr>
+  </table>
+
+  <p><b>标签内容（自上而下）：</b>店名（可开关）→ <b>产品名称</b> → <b>颜色 + 号码（尺码）</b> → <b>价格</b> → <b>条形码</b> → 条码下方可读数字（破损时可手输）。</p>
+  <div class="note"><b>标签是"色码级"，条码是"款级"：</b>同一款下每个"颜色×尺码"各打一张标签，<b>条码内容相同（都是款号），文字不同</b>（白/38、白/39、黑/38…）。每双鞋上都有写明颜色尺码的标签，扫码后弹出的是这一款的库存矩阵，点一下对应格子即可销售。</div>
+
+  <div class="figure">
+    <svg viewBox="0 0 900 260" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <text x="30" y="30" font-size="14" font-weight="700" fill="#1e293b">40×30mm 热敏标签模板（示意，红色为强制静区）</text>
+      <rect x="30" y="46" width="320" height="200" rx="6" fill="#fff" stroke="#94a3b8" stroke-width="1.5"/>
+      <rect x="30" y="46" width="20" height="200" fill="#fef2f2"/>
+      <rect x="330" y="46" width="20" height="200" fill="#fef2f2"/>
+      <text x="42" y="150" font-size="11" fill="#dc2626" transform="rotate(-90 42 150)">静区≥2.5mm</text>
+      <text x="342" y="150" font-size="11" fill="#dc2626" transform="rotate(90 342 150)">静区≥2.5mm</text>
+      <text x="180" y="70" text-anchor="middle" font-size="9.5" fill="#64748b">店名（可开关）</text>
+      <text x="180" y="90" text-anchor="middle" font-size="12" font-weight="700" fill="#1e293b">小白鞋 A101</text>
+      <text x="180" y="106" text-anchor="middle" font-size="10" fill="#334155">款号 A101 · 白色</text>
+      <text x="180" y="126" text-anchor="middle" font-size="13" font-weight="700" fill="#2563eb">¥ 129.00</text>
+      <g fill="#0f172a">
+        <rect x="62" y="138" width="3" height="42"/><rect x="67" y="138" width="2" height="42"/><rect x="71" y="138" width="4" height="42"/>
+        <rect x="77" y="138" width="2" height="42"/><rect x="81" y="138" width="3" height="42"/><rect x="86" y="138" width="5" height="42"/>
+        <rect x="93" y="138" width="2" height="42"/><rect x="97" y="138" width="3" height="42"/><rect x="102" y="138" width="2" height="42"/>
+        <rect x="106" y="138" width="4" height="42"/><rect x="112" y="138" width="2" height="42"/><rect x="116" y="138" width="3" height="42"/>
+        <rect x="121" y="138" width="5" height="42"/><rect x="128" y="138" width="2" height="42"/><rect x="132" y="138" width="3" height="42"/>
+        <rect x="137" y="138" width="2" height="42"/><rect x="141" y="138" width="4" height="42"/><rect x="147" y="138" width="3" height="42"/>
+        <rect x="152" y="138" width="2" height="42"/><rect x="156" y="138" width="5" height="42"/><rect x="163" y="138" width="3" height="42"/>
+        <rect x="168" y="138" width="2" height="42"/><rect x="172" y="138" width="4" height="42"/><rect x="178" y="138" width="2" height="42"/>
+        <rect x="182" y="138" width="3" height="42"/><rect x="187" y="138" width="5" height="42"/><rect x="194" y="138" width="2" height="42"/>
+        <rect x="198" y="138" width="3" height="42"/><rect x="203" y="138" width="4" height="42"/><rect x="209" y="138" width="2" height="42"/>
+        <rect x="213" y="138" width="3" height="42"/><rect x="218" y="138" width="5" height="42"/><rect x="225" y="138" width="2" height="42"/>
+        <rect x="229" y="138" width="3" height="42"/><rect x="234" y="138" width="2" height="42"/><rect x="238" y="138" width="4" height="42"/>
+        <rect x="244" y="138" width="3" height="42"/><rect x="249" y="138" width="2" height="42"/><rect x="253" y="138" width="5" height="42"/>
+        <rect x="260" y="138" width="3" height="42"/><rect x="265" y="138" width="2" height="42"/><rect x="269" y="138" width="4" height="42"/>
+        <rect x="275" y="138" width="2" height="42"/><rect x="279" y="138" width="3" height="42"/><rect x="284" y="138" width="5" height="42"/>
+        <rect x="291" y="138" width="2" height="42"/><rect x="295" y="138" width="3" height="42"/><rect x="300" y="138" width="2" height="42"/>
+        <rect x="304" y="138" width="4" height="42"/><rect x="310" y="138" width="3" height="42"/>
+      </g>
+      <text x="180" y="194" text-anchor="middle" font-size="9" fill="#334155" letter-spacing="2">X001</text>
+      <text x="180" y="230" text-anchor="middle" font-size="9.5" fill="#94a3b8">40 mm</text>
+      <text x="380" y="86" font-size="12.5" fill="#334155">• 纸张尺寸写死 <b>40×30mm</b>（条码=4字符款号，40mm 足够），一页一张</text>
+      <text x="380" y="110" font-size="12.5" fill="#334155">• 条码高度 10mm，模块宽 ≈0.44mm（203dpi 下约 3.5px），清晰好扫</text>
+      <text x="380" y="134" font-size="12.5" fill="#334155">• 左右静区 ≥2.5mm（红色区域，模板强制留白）</text>
+      <text x="380" y="158" font-size="12.5" fill="#334155">• 打印必须选「实际大小 / 100%」，关掉「适合页宽」</text>
+      <text x="380" y="182" font-size="12.5" fill="#334155">• 打印浓度、纸张校准在打印机驱动里设置（长按 FEED 键自动测纸）</text>
+      <text x="380" y="208" font-size="12.5" fill="#dc2626"><b>换纸或首次使用：先打测试标签（TEST001），手机扫通再批量打</b></text>
+    </svg>
+    <div class="figcap">图 9 · 40×30mm 热敏标签模板与关键打印参数（条码内容 = 款号，同款共用）</div>
+  </div>
+
+  <h4>蓝牙打印实现要点（手机端主通道，开发必读）</h4>
+  <ul>
+    <li><b>蓝牙通道</b>：Web Bluetooth（<code>navigator.bluetooth.requestDevice</code>）连标签机，GATT 写特征发指令；<b>要求 https 环境</b>（正好由下面的托管方案满足）。</li>
+    <li><b>指令适配层</b>：内置 <b>TSPL</b>（TSC 兼容，多数国产标签机）与 <b>ESC/POS</b> 两套，设置里切换；首次使用打测试页选对指令（打出来是乱码就换另一个），选择本地保存。</li>
+    <li><b>位图生成</b>：标签先渲染成 1-bit 黑白位图，按 DPI 精确算像素（40×30mm@203dpi = 320×236px），<b>禁止任何缩放拉伸</b>，条码模块宽 ≥3px。</li>
+    <li><b>连接体验</b>：首次点【连接打印机】系统弹窗选设备（需用户手势触发）→ 记住设备，下次自动重连；断连给"重连 / 改用电脑打印"入口。</li>
+    <li><b>先打测试页</b>：【打印测试标签】（固定条码 TEST001），<b>手机扫通才允许批量打</b>，避免整卷浪费。</li>
+    <li><b>电脑端备用通道</b>：<code>@page{size:Wmm Hmm;margin:0}</code> 一页一张、1:1 不缩放、关页眉页脚；可导出 PNG/PDF（203/300dpi）给厂商软件打印；手机端待打印队列可同步到电脑一键批量打。</li>
+    <li><b>打印记录</b>：记录打印时间与张数、模板尺寸、对应色码，列表支持"已打印 / 未打印"筛选，避免漏打和重复打。</li>
+  </ul>
+
+  <h4>主流程：采购到货 → 建档 → 打标签 → 扫码销售</h4>
+  <div class="figure">
+    <svg viewBox="0 0 900 470" xmlns="http://www.w3.org/2000/svg" font-family="-apple-system,PingFang SC,sans-serif">
+      <defs><marker id="mp" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><path d="M0,0 L10,4 L0,8 z" fill="#2563eb"/></marker></defs>
+      <!-- step1 -->
+      <rect x="24" y="20" width="250" height="112" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+      <circle cx="52" cy="48" r="14" fill="#2563eb"/><text x="52" y="53" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">1</text>
+      <text x="76" y="53" font-size="14" font-weight="700" fill="#1e3a8a">手机【新款建档】只填 4 项</text>
+      <text x="40" y="80" font-size="12" fill="#334155">名称 / 类别 / 颜色 / 号码</text>
+      <text x="40" y="100" font-size="12" fill="#334155">＋ 进价 / 售价（款号 id 条码全自动）</text>
+      <text x="40" y="122" font-size="11.5" fill="#64748b">⏱ 填完点【保存并打印】</text>
+      <path d="M274,76 L330,76" stroke="#2563eb" stroke-width="2" marker-end="url(#mp)"/>
+      <!-- step2 -->
+      <rect x="334" y="20" width="230" height="112" rx="12" fill="#f5f3ff" stroke="#c4b5fd" stroke-width="1.5"/>
+      <circle cx="362" cy="48" r="14" fill="#7c3aed"/><text x="362" y="53" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">2</text>
+      <text x="386" y="53" font-size="14" font-weight="700" fill="#5b21b6">自动生成编码 + 条码</text>
+      <text x="350" y="80" font-size="12" fill="#334155">款号 X001（同款共用）</text>
+      <text x="350" y="100" font-size="12" fill="#334155">各色码 id → 条码 = CODE128(X001)</text>
+      <text x="350" y="122" font-size="11.5" fill="#64748b">⚡ 1 秒完成，无需手工输入</text>
+      <path d="M450,132 L450,168" stroke="#2563eb" stroke-width="2" marker-end="url(#mp)"/>
+      <!-- step3 -->
+      <rect x="334" y="172" width="230" height="112" rx="12" fill="#fffbeb" stroke="#fcd34d" stroke-width="1.5"/>
+      <circle cx="362" cy="200" r="14" fill="#d97706"/><text x="362" y="205" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">3</text>
+      <text x="386" y="205" font-size="14" font-weight="700" fill="#92400e">标签页：色码矩阵填张数</text>
+      <text x="350" y="232" font-size="12" fill="#334155">每格默认 = 该色码进货数量</text>
+      <text x="350" y="252" font-size="12" fill="#334155">不需要的格子填 0，可逐格改</text>
+      <text x="350" y="274" font-size="11.5" fill="#64748b">📶 蓝牙已连 → 点【打印】</text>
+      <path d="M334,228 L286,228" stroke="#2563eb" stroke-width="2" marker-end="url(#mp)"/>
+      <!-- step4 -->
+      <rect x="24" y="172" width="250" height="112" rx="12" fill="#ecfdf5" stroke="#6ee7b7" stroke-width="1.5"/>
+      <circle cx="52" cy="200" r="14" fill="#059669"/><text x="52" y="205" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">4</text>
+      <text x="76" y="205" font-size="14" font-weight="700" fill="#065f46">标签逐张打出</text>
+      <text x="40" y="232" font-size="12" fill="#334155">产品名 / 颜色+号码 / 价格 / 条码（同款条码相同）</text>
+      <text x="40" y="252" font-size="12" fill="#334155">👉 贴到鞋盒或吊牌上</text>
+      <text x="40" y="274" font-size="11.5" fill="#64748b">⏱ 建档到出标签 ≤ 90 秒</text>
+      <!-- step5 -->
+      <path d="M150,284 L150,320" stroke="#2563eb" stroke-width="2" marker-end="url(#mp)"/>
+      <rect x="24" y="324" width="540" height="112" rx="12" fill="#eff6ff" stroke="#93c5fd" stroke-width="1.5"/>
+      <circle cx="52" cy="352" r="14" fill="#2563eb"/><text x="52" y="357" text-anchor="middle" font-size="13" fill="#fff" font-weight="700">5</text>
+      <text x="76" y="357" font-size="14" font-weight="700" fill="#1e3a8a">销售：扫码 → 看库存矩阵 → 点色码卖</text>
+      <text x="40" y="384" font-size="12" fill="#334155">开单页点 📷 扫吊牌条码 → 1 秒内弹出该款卡片（名称 / 售价 / 颜色×尺码库存矩阵）</text>
+      <text x="40" y="404" font-size="12" fill="#334155">点对应「颜色+尺码」格子 → 选收款方式 → 保存（仅该色码库存 −1）</text>
+      <text x="40" y="426" font-size="11.5" fill="#059669">✔ 库存自动 −1，收入与流水自动记账　⏱ 扫码到加入销售单 ≤ 3 秒</text>
+
+      <!-- phone sketch -->
+      <rect x="600" y="20" width="270" height="416" rx="26" fill="#0f172a"/>
+      <rect x="608" y="28" width="254" height="400" rx="20" fill="#f8fafc"/>
+      <rect x="690" y="34" width="90" height="12" rx="6" fill="#0f172a"/>
+      <text x="735" y="74" text-anchor="middle" font-size="14" font-weight="700" fill="#1e293b">新款建档（手机）</text>
+      <text x="624" y="100" font-size="11" fill="#64748b">产品名称</text>
+      <rect x="624" y="106" width="222" height="28" rx="8" fill="#fff" stroke="#cbd5e1"/>
+      <text x="634" y="125" font-size="11.5" fill="#1e293b">小白鞋（款号自动 X001）</text>
+      <text x="624" y="152" font-size="11" fill="#64748b">进价 / 售价</text>
+      <rect x="624" y="158" width="106" height="28" rx="8" fill="#fff" stroke="#cbd5e1"/><text x="634" y="177" font-size="11.5" fill="#1e293b">50</text>
+      <rect x="740" y="158" width="106" height="28" rx="8" fill="#fff" stroke="#cbd5e1"/><text x="750" y="177" font-size="11.5" fill="#1e293b">129</text>
+      <text x="624" y="204" font-size="11" fill="#64748b">颜色（多选）</text>
+      <rect x="624" y="210" width="70" height="26" rx="13" fill="#2563eb"/><text x="659" y="228" text-anchor="middle" font-size="11" fill="#fff">白</text>
+      <rect x="702" y="210" width="70" height="26" rx="13" fill="#fff" stroke="#cbd5e1"/><text x="737" y="228" text-anchor="middle" font-size="11" fill="#475569">黑</text>
+      <rect x="780" y="210" width="66" height="26" rx="13" fill="#fff" stroke="#cbd5e1"/><text x="813" y="228" text-anchor="middle" font-size="11" fill="#475569">＋</text>
+      <text x="624" y="256" font-size="11" fill="#64748b">尺码（多选）</text>
+      <rect x="624" y="262" width="46" height="26" rx="8" fill="#2563eb"/><text x="647" y="280" text-anchor="middle" font-size="11" fill="#fff">36</text>
+      <rect x="676" y="262" width="46" height="26" rx="8" fill="#2563eb"/><text x="699" y="280" text-anchor="middle" font-size="11" fill="#fff">37</text>
+      <rect x="728" y="262" width="46" height="26" rx="8" fill="#2563eb"/><text x="751" y="280" text-anchor="middle" font-size="11" fill="#fff">38</text>
+      <rect x="780" y="262" width="66" height="26" rx="8" fill="#fff" stroke="#cbd5e1"/><text x="813" y="280" text-anchor="middle" font-size="11" fill="#475569">＋</text>
+      <rect x="624" y="306" width="222" height="26" rx="8" fill="#f1f5f9"/>
+      <text x="634" y="324" font-size="10.5" fill="#64748b">将生成：款号 X001 → 条码 CODE128(X001)</text>
+      <rect x="624" y="342" width="222" height="40" rx="12" fill="#059669"/>
+      <text x="735" y="367" text-anchor="middle" font-size="13" font-weight="700" fill="#fff">保存并打印标签 📶</text>
+      <text x="624" y="404" font-size="11" fill="#64748b">📶 蓝牙标签机已连接</text>
+      <rect x="608" y="392" width="254" height="36" fill="#fff" stroke="#e2e8f0"/>
+      <text x="680" y="416" text-anchor="middle" font-size="10" fill="#2563eb" font-weight="700">建档</text>
+      <text x="735" y="416" text-anchor="middle" font-size="10" fill="#94a3b8">开单</text>
+      <text x="790" y="416" text-anchor="middle" font-size="10" fill="#94a3b8">库存</text>
+    </svg>
+    <div class="figcap">图 10 · 采购到货主流程：手机建档 → 蓝牙打标签 → 扫码销售</div>
+  </div>
+
+  <div class="note warn"><b>耗材建议：</b>用热敏不干胶标签纸（无需碳带）。贴在鞋盒/吊牌上长期保存，建议选<b>三防热敏纸</b>（防水防油防刮）；普通热敏纸遇热或日晒会整体变黑、条码失效，跨季库存尤其要注意。</div>
+
+  <h3>4. 四个扫码入口</h3>
+  <table>
+    <tr><th>入口</th><th>位置</th><th>行为</th></tr>
+    <tr><td>📷 扫码查库存</td><td>库存页 / 首页主按钮旁</td><td>扫 → 弹出款级商品卡（售价、颜色、尺码、库存矩阵），点格子加入销售单或去盘点</td></tr>
+    <tr><td>📷 扫码销售</td><td>开单页搜索框右侧</td><td>连续扫码：扫一款 → 弹色码选择 → 选完加入明细，带提示音/高亮反馈</td></tr>
+    <tr><td>📷 扫码入库/盘点</td><td>进货明细、盘点页</td><td>扫 → 选色码 → 该色码数量 +1，未建档提示先建档</td></tr>
+    <tr><td>📷 扫码建档</td><td>商品档案 → 新建 → 条码框</td><td>扫现成条码自动填入，避免手工输错</td></tr>
+  </table>
+
+  <h3>5. 识别方式三级降级（任何环境都能扫）</h3>
+  <table>
+    <tr><th>方式</th><th>适用</th><th>说明</th></tr>
+    <tr><td>① 实时预览扫码（首选）</td><td>https 环境</td><td>摄像头连续识别，支持连扫，体验最好；浏览器要求安全上下文</td></tr>
+    <tr><td>② 拍照识别（兜底）</td><td>任何环境，含离线 file://</td><td>调系统相机拍一张后本地解码，不要求 https</td></tr>
+    <tr><td>③ 手写输入</td><td>条码破损/光线差/无摄像头</td><td>直接输条码数字，结果与扫码一致</td></tr>
+  </table>
+  <p>电脑端 USB 扫码枪本质是键盘模拟输入，光标在搜索框内即可直接使用，<b>不需要额外开发</b>。</p>
+
+  <p>条码<b>生成与打印只在电脑端做</b>（要接打印机），<b>扫码使用主要在手机端</b>，两端数据一致。</p>
+
+  <h3>6. 部署方式微调（重要）</h3>
+  <p>手机摄像头必须在 <b>https</b> 环境才能调用。推荐：<b>把纯静态文件托管到免费 https 静态空间</b>（EdgeOne Pages / GitHub Pages / Cloudflare Pages / 腾讯云 COS 静态网站），手机用网址打开并"添加到主屏幕"，配合 Service Worker 缓存后离线仍可打开。<b>所有经营数据仍然只存在手机本地，服务端不存任何数据，依然零服务器成本。</b></p>
+  <p>如果只用本地文件双击打开（file://），实时扫码不可用，系统自动降级为"拍照识别 + 手写输入"，其余功能不受影响。</p>
+
+  <h3>7. 异常条码处理</h3>
+  <ul>
+    <li>未建档 → 提示"未找到此条码"，提供【立即建档】，跳转新建商品并预填条码。</li>
+    <li>条码重复 → 建档/批量导入/生成时拦截，指出已被哪个款占用（款级唯一）。</li>
+    <li>整款库存为 0 → 提示"此款已无库存"；单个色码为 0 → 矩阵中灰显不可点。</li>
+    <li>已停售 → 查库存可见，销售扫码时二次确认。</li>
+    <li>识别失败 → 提供【重试】【手输条码】两个入口。</li>
+  </ul>
+</section>
+
+<footer>鞋服店铺进销存记账软件 · 实施方案 V1.5（编码自动生成：款号 / SKU id / 条码）· 更新于 2026-08-31</footer>
+</div>
+</body>
+</html>

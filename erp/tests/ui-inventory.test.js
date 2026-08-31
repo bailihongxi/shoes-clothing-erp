@@ -1,0 +1,154 @@
+const test = require('node:test');
+const assert = require('node:assert');
+const coding = require('../js/core/coding.js');
+const engine = require('../js/core/engine.js');
+const inv = require('../js/core/inventory.js');
+const page = require('../js/ui/page-inventory.js');
+const { newCtx } = require('./helpers/ctx.js');
+
+function fresh() {
+  const ctx = newCtx();
+  coding.create(
+    { name: '小白鞋', category: '鞋', colors: ['白', '黑'], sizes: ['38', '39'], costPrice: '50', salePrice: '129' },
+    ctx
+  );
+  const state = page.init(ctx);
+  return { ctx, state };
+}
+
+function stockIn(ctx, qtyMap) {
+  return engine.savePurchase(ctx, {
+    date: '2026-08-31',
+    partnerName: '温州鞋厂',
+    items: Object.keys(qtyMap).map((skuId) => ({ skuId, qty: qtyMap[skuId], costPrice: '50' })),
+    paid: 99999
+  });
+}
+
+test('页面元数据与初始状态', () => {
+  assert.strictEqual(page.name, 'inventory');
+  const { state } = fresh();
+  assert.strictEqual(state.tab, 'list');
+});
+
+test('库存列表：显示款号、总库存、资金占用，可展开颜色×尺码矩阵', () => {
+  const { ctx, state } = fresh();
+  stockIn(ctx, { X0010138: 3, X0010239: 1 });
+
+  let html = page.render(ctx, state);
+  assert.ok(html.includes('X001'));
+  assert.ok(html.includes('小白鞋'));
+  assert.ok(html.includes('库存管理'));
+  assert.ok(html.includes('资金占用'));
+  assert.ok(!html.includes('颜色\\尺码'));
+
+  page.actions['toggle-expand'](ctx, state, { getAttribute: () => 'X001' });
+  html = page.render(ctx, state);
+  assert.ok(html.includes('颜色\\尺码'), '展开后应出现矩阵');
+  assert.ok(html.includes('data-sku="X0010138"'));
+  assert.ok(html.includes('收起'));
+});
+
+test('搜索：按款号 / 名称 / 条码 / SKU id 都能命中', () => {
+  const { ctx, state } = fresh();
+  coding.create({ name: '纯棉T恤', category: '服装', colors: ['白'], sizes: ['M'] }, ctx);
+
+  state.keyword = 'F001';
+  assert.ok(page.render(ctx, state).includes('纯棉T恤'));
+  state.keyword = 'T恤';
+  assert.ok(page.render(ctx, state).includes('纯棉T恤'));
+  state.keyword = 'X0010139';
+  assert.ok(page.render(ctx, state).includes('小白鞋'));
+  assert.ok(!page.render(ctx, state).includes('纯棉T恤'));
+});
+
+test('扫码查库存：输入条码直接定位该款并展开矩阵', () => {
+  const { ctx, state } = fresh();
+  page.actions['scan-input'](ctx, state, { value: 'X001' });
+  assert.strictEqual(state.keyword, 'X001');
+  assert.strictEqual(state.expanded, 'X001');
+  assert.ok(page.render(ctx, state).includes('颜色\\尺码'));
+});
+
+test('阈值可在列表直接改，写入款与其全部色码', () => {
+  const { ctx, state } = fresh();
+  page.actions['set-threshold'](ctx, state, { getAttribute: () => 'X001', value: '5' });
+  assert.strictEqual(ctx.getProduct('X001').threshold, 5);
+  ctx.skusOf('X001').forEach((s) => assert.strictEqual(s.threshold, 5));
+
+  stockIn(ctx, { X0010138: 4 });
+  assert.ok(inv.getAlerts(ctx).some((a) => a.skuId === 'X0010138'), '库存 4 < 阈值 5 应预警');
+});
+
+test('预警页：列出低于阈值的色码与数量', () => {
+  const { ctx, state } = fresh();
+  stockIn(ctx, { X0010138: 1 });
+  page.actions.tab(ctx, state, { getAttribute: () => 'alert' });
+  const html = page.render(ctx, state);
+  assert.ok(html.includes('库存预警'));
+  assert.ok(html.includes('X0010138') || html.includes('白'));
+  assert.ok(html.includes('低于阈值的色码共'));
+});
+
+test('盘点：选款 → 填实盘数 → 保存 → 库存更新为实盘数并留记录', () => {
+  const { ctx, state } = fresh();
+  stockIn(ctx, { X0010138: 5, X0010139: 5 });
+
+  page.actions.tab(ctx, state, { getAttribute: () => 'take' });
+  page.actions['pick-take-style'](ctx, state, { getAttribute: () => 'X001' });
+  let html = page.render(ctx, state);
+  assert.ok(html.includes('录入实盘数'));
+  assert.ok(html.includes('data-change="real"'));
+
+  page.actions.real(ctx, state, { getAttribute: () => 'X0010138', value: '4' });
+  page.actions.real(ctx, state, { getAttribute: () => 'X0010139', value: '6' });
+  assert.strictEqual(page.actions['save-take'](ctx, state), true);
+
+  assert.strictEqual(ctx.getSku('X0010138').stock, 4);
+  assert.strictEqual(ctx.getSku('X0010139').stock, 6);
+  const doc = ctx.data.stocktakes[0];
+  assert.ok(/^T\d{8}-001$/.test(doc.no));
+  assert.strictEqual(doc.diffQty, 0, '-1 +1 = 0');
+  assert.strictEqual(doc.diffCount, 2);
+
+  html = page.render(ctx, state);
+  assert.ok(html.includes('最近盘点记录'));
+  assert.ok(html.includes('盘点单'));
+});
+
+test('盘点：未选款直接保存会被拦截', () => {
+  const { ctx, state } = fresh();
+  page.actions.tab(ctx, state, { getAttribute: () => 'take' });
+  assert.strictEqual(page.actions['save-take'](ctx, state), false);
+  assert.strictEqual(ctx.data.stocktakes.length, 0);
+});
+
+test('变动明细：展示某色码的入库/出库/盘点流水', () => {
+  const { ctx, state } = fresh();
+  stockIn(ctx, { X0010138: 5 });
+  engine.saveStocktake(ctx, { styleCode: 'X001', counts: { X0010138: 4 } });
+
+  page.actions['show-logs'](ctx, state, { getAttribute: () => 'X0010138' });
+  const html = page.render(ctx, state);
+  assert.ok(html.includes('变动明细'));
+  assert.ok(html.includes('进货入库'));
+  assert.ok(html.includes('盘点调整'));
+  assert.ok(html.includes('-1'));
+});
+
+test('分页上限 300 条', () => {
+  const { ctx, state } = fresh();
+  for (let i = 0; i < 400; i++) {
+    ctx.data.products.push({
+      styleCode: 'X' + String(i + 2).padStart(3, '0'),
+      name: '款' + i,
+      category: '鞋',
+      salePrice: 0,
+      barcode: 'X' + i
+    });
+  }
+  const html = page.render(ctx, state);
+  const rows = html.split('<tr>').length - 1;
+  assert.ok(rows <= 301, '单页行数 ≤300，实际 ' + rows);
+  assert.ok(html.includes('共 401 条'));
+});

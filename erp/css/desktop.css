@@ -1,0 +1,87 @@
+/* desktop.css —— ≥768px：左侧栏 + 内容区 */
+
+@media (min-width: 768px) {
+  #app { flex-direction: row; }
+
+  .app-tabbar { display: none; }
+
+  .app-header { display: none; }
+
+  .app-sidebar {
+    position: sticky;
+    top: 0;
+    width: var(--sidebar-w);
+    flex: 0 0 var(--sidebar-w);
+    height: 100vh;
+    overflow-y: auto;
+    background: #fff;
+    border-right: 1px solid var(--c-border);
+    padding: 12px 8px;
+    z-index: 30;
+  }
+  .app-sidebar .brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    padding: 6px 8px 12px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 9px 10px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: var(--c-text);
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .nav-item:hover { background: #f3f4f6; }
+  .nav-item.on { background: var(--c-primary-soft); color: var(--c-primary-dark); font-weight: 600; }
+  .nav-item .ico { width: 20px; text-align: center; }
+
+  .app-column { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .app-main { padding: 16px 20px 40px; max-width: 1280px; width: 100%; }
+
+  .page-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .page-head h2 { font-size: 20px; }
+  .page-head .desc { font-size: 13px; color: var(--c-text-sub); }
+  .page-head .actions { margin-left: auto; display: flex; gap: 8px; }
+
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+  .card { padding: 14px 16px; }
+
+  .modal-mask { align-items: center; }
+  .modal { border-radius: 12px; max-height: 82vh; }
+
+  #toast-wrap { bottom: 40px; }
+
+  .mobile-only { display: none !important; }
+
+  /* 双列：列表 + 详情 */
+  .two-col { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 14px; align-items: start; }
+
+  .checkout-bar {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    border-top: 1px solid var(--c-border);
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+}
