@@ -50,7 +50,8 @@ test('新建进货单：点矩阵格子批量填数 → 库存 +N、金额与欠
   assert.strictEqual(makePurchase(ctx, state, 100), true);
 
   const doc = ctx.data.purchases[0];
-  assert.strictEqual(doc.no, 'P' + '2026-08-31'.replace(/-/g, '') + '-001'.replace('001', '001'));
+  const todayCompact = require('../js/core/util.js').today().replace(/-/g, '');
+  assert.strictEqual(doc.no, 'P' + todayCompact + '-001');
   assert.ok(/^P\d{8}-001$/.test(doc.no));
   assert.strictEqual(doc.total, 15000, '3 件 × 50 元');
   assert.strictEqual(doc.paid, 10000);

@@ -285,7 +285,7 @@
         '<div class="search-bar">' +
           '<span class="ico">🔍</span>' +
           '<input class="input" data-input="keyword" placeholder="搜款号 / 名称 / 条码（可扫码）" value="' + esc(st.keyword) + '">' +
-          '<button class="btn-scan" data-act="scan" aria-label="扫码">▦</button>' +
+          '<button class="btn" data-act="scan" title="扫码">📷</button>' +
         '</div>' +
       '</div>'
     );

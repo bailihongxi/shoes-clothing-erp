@@ -279,24 +279,7 @@ button, input, select, textarea {
 .search-bar { display: flex; align-items: center; gap: 8px; }
 .search-bar .ico { flex: 0 0 auto; font-size: 17px; color: var(--c-text-sub); }
 .search-bar .input { flex: 1; min-width: 0; }
-.btn-scan {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: none;
-  border-radius: 12px;
-  background: var(--c-mint-100, #d9f3ec);
-  color: var(--c-mint-700, #2f9e8a);
-  font-size: 20px;
-  line-height: 1;
-  cursor: pointer;
-  transition: transform .08s, background .15s;
-}
-.btn-scan:active { transform: scale(.94); background: var(--c-mint-200, #b9e8dd); }
+.search-bar .btn { flex: 0 0 auto; }
 
 /* ---------- 表单 ---------- */
 

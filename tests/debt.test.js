@@ -93,10 +93,12 @@ test('debt.overdue：应收超期（>15 天）提醒', () => {
     items: [{ skuId: 'X0010138', qty: 1, price: '100' }],
     payments: [{ method: 'debt', amount: '100' }]
   });
-  const over = debt.overdue(ctx, 15); // 今天 2026-08-31
+  const over = debt.overdue(ctx, 15); // 超期天数按系统“今天”动态计算
   const found = over.find((o) => o.partner.id === old.id);
+  const util = require('../js/core/util.js');
+  const expectDays = util.diffDays('2026-08-01', util.today());
   assert.ok(found, '8/1 的应收应超期');
-  assert.strictEqual(found.days, 30, '距今天 30 天');
+  assert.strictEqual(found.days, expectDays, '8/1 距今天 ' + expectDays + ' 天');
   assert.strictEqual(over.some((o) => o.partner.id === recent.id), false, '8/25 未超期');
 });
 
