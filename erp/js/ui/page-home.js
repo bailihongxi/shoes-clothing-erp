@@ -114,14 +114,21 @@
     return '<div class="card todo-card"><h3 class="card-title">待处理事项</h3><ul class="todo-list">' + items + '</ul></div>';
   }
 
-  /** v2 手机端 stat-card（icon+label+value，营收/单数/毛利/预警） */
+  /** v2 手机端 stat-card：3 列布局（2,2,1）
+   * 列1：今日应收 / 今日开单；列2：今日毛利 / 预警款数；列3：放大开单按钮（占 1 列、跨 2 行）
+   */
   function mobileStats(ctx) {
     var s = stats(ctx);
     return (
-      '<div class="mobile-only stat-grid">' +
-        statCardHtml('今日营收', '¥' + fmtNumber(s.revenue / 100), 'mint', '🛍️') +
-        statCardHtml('今日单数', fmtNumber(s.count), 'gray', '🔔') +
+      '<div class="mobile-only stat-grid home-stat-3col">' +
+        statCardHtml('今日应收', '¥' + fmtNumber(s.revenue / 100), 'mint', '🛍️') +
         statCardHtml('今日毛利', '¥' + fmtNumber(s.grossProfit / 100), 'peach', '👕') +
+        '<button class="home-sale-btn home-sale-col" data-act="go" data-page="sale" aria-label="开单">' +
+          '<span class="ico">📷</span>' +
+          '<span class="t">开单</span>' +
+          '<span class="s">扫码/选货</span>' +
+        '</button>' +
+        statCardHtml('今日开单', fmtNumber(s.count), 'gray', '🔔') +
         statCardHtml('预警款数', fmtNumber(s.alertCount), 'pink', '🛒') +
       '</div>'
     );
@@ -174,11 +181,6 @@
       '<div class="home-top">' +
         '<div class="overview-head">' +
           '<div><div class="title">经营概览</div><div class="date">' + cnDate + '</div></div>' +
-          '<button class="home-sale-btn" data-act="go" data-page="sale" aria-label="开单">' +
-            '<span class="ico">📷</span>' +
-            '<span class="t">开单</span>' +
-            '<span class="s">扫码/选货</span>' +
-          '</button>' +
         '</div>' +
         mobileStats(ctx) +
       '</div>' +
@@ -223,13 +225,13 @@
         '<div class="stat-grid">' +
           '<div class="stat-card">' +
             '<div class="icon mint">💴</div>' +
-            '<div class="label">今日营收</div>' +
+            '<div class="label">今日应收</div>' +
             '<div class="value">¥' + fmtNumber(s.revenue / 100) + '</div>' +
             deltaHtml(revPct) +
           '</div>' +
           '<div class="stat-card">' +
             '<div class="icon blue">📝</div>' +
-            '<div class="label">今日单数</div>' +
+            '<div class="label">今日开单</div>' +
             '<div class="value">' + fmtNumber(s.count) + '</div>' +
             deltaHtml(cntPct) +
           '</div>' +

@@ -51,6 +51,25 @@
   .home-sale-btn .t { font-size: 16px; letter-spacing: 1px; }
   .home-sale-btn .s { font-size: 11px; }
 
+  /* 首页 stat 3 列（2,2,1）：列1 应收/开单，列2 毛利/预警，列3 放大开单按钮跨 2 行 */
+  .home-top .stat-grid.home-stat-3col {
+    grid-template-columns: 1fr 1fr 0.92fr;
+    gap: 12px;
+    grid-auto-rows: 1fr;
+  }
+  .home-stat-3col .home-sale-btn.home-sale-col {
+    grid-row: span 2;
+    width: 100%;
+    min-width: 0;
+    min-height: 100%;
+    padding: 16px 10px;
+    border-radius: var(--radius-lg);
+    gap: 5px;
+  }
+  .home-stat-3col .home-sale-btn .ico { font-size: 34px; }
+  .home-stat-3col .home-sale-btn .t { font-size: 21px; margin-top: 6px; letter-spacing: 2px; }
+  .home-stat-3col .home-sale-btn .s { font-size: 12px; }
+
   /* v2 stat-card 在手机上更紧凑 */
   .stat-card { padding: 14px; min-height: 88px; }
   .stat-card .value { font-size: 22px; }

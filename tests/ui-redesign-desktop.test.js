@@ -116,7 +116,7 @@ test('首页：手机端与桌面端分区渲染，banner 仅在手机端', () =
   const mobile = /<div class="mobile-only">[\s\S]*?<\/div>\s*<div class="desktop-only">/.test(html);
   assert.ok(mobile, '应同时输出 mobile-only 与 desktop-only 分区');
   assert.ok(/page-banner/.test(html), '手机端含薄荷绿 banner');
-  assert.ok(/今日营收/.test(html) && /快捷入口/.test(html), '手机端保留概览与快捷入口');
+  assert.ok(/今日应收/.test(html) && /快捷入口/.test(html), '手机端保留概览与快捷入口');
   assert.ok(/销售趋势/.test(html) || /近7天/.test(html) || /TOP5/.test(html), '桌面端保留看板');
 });
 
