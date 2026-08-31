@@ -907,3 +907,88 @@ table.matrix td.cell.hit { outline: 2px solid var(--c-primary); background: var(
   padding: 24px;
 }
 .lock-card { width: 100%; max-width: 320px; }
+
+/* ---------- v2 云同步卡片（按图1）---------- */
+.sync-card { padding: 16px 18px 14px; }
+.sync-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 12px;
+}
+.sync-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-text-strong);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sync-title .sync-sub {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--c-text-sub);
+}
+.sync-setting-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--c-border);
+  background: #fff;
+  color: var(--c-text);
+  border-radius: 999px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .15s, color .15s;
+}
+.sync-setting-btn:hover { border-color: var(--c-mint-600); color: var(--c-mint-700); }
+
+.sync-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.sync-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 8px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: filter .15s, transform .05s;
+}
+.sync-btn:active { transform: scale(0.97); }
+.sync-btn[disabled] { opacity: 0.55; cursor: not-allowed; }
+.sync-btn .ico { font-size: 16px; line-height: 1; }
+.sync-btn.cloud-up {
+  background: var(--c-mint-600);
+  color: #fff;
+  border-color: var(--c-mint-600);
+}
+.sync-btn.cloud-up:hover { filter: brightness(1.05); }
+.sync-btn.cloud-down {
+  background: #fff;
+  color: var(--c-text);
+  border: 1px solid var(--c-border);
+  border-color: #d1d5db;
+}
+.sync-btn.cloud-down:hover { border-color: #9ca3af; }
+
+.sync-tip {
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--c-text-sub);
+  margin-bottom: 6px;
+}
+.sync-status {
+  font-size: 12.5px;
+  color: var(--c-text-sub);
+  opacity: 0.85;
+}
+.sync-status b { color: var(--c-success); font-weight: 600; }

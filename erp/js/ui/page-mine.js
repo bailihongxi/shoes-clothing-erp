@@ -247,24 +247,31 @@
     return h;
   }
 
-  /** 云同步卡片 */
+  /** 云同步卡片（按图1布局） */
   function renderSyncCard(state, cfg) {
     var busy = !!state.busy;
     var lastPush = cfg.lastPushAt ? (util.fmtDateTime ? util.fmtDateTime(cfg.lastPushAt) : cfg.lastPushAt) : '';
 
     var h = '<div class="card sync-card">' +
-      '<div class="sync-title">☁ 云同步</div>' +
+      '<div class="sync-head">' +
+        '<div class="sync-title">☁ 云同步 <span class="sync-sub">(GitHub Pages)</span></div>' +
+        '<button class="sync-setting-btn" data-act="toggle-sync-cfg">同步设置</button>' +
+      '</div>' +
       '<div class="sync-actions">' +
-        '<button class="btn btn-outline" data-act="sync-up"' + (busy ? ' disabled' : '') + '>' +
-          (busy ? '同步中…' : '同步到云端') +
+        '<button class="sync-btn cloud-up" data-act="sync-up"' + (busy ? ' disabled' : '') + '>' +
+          '<span class="ico">☁</span>' +
+          '<span class="t">' + (busy ? '同步中…' : '同步到云端') + '</span>' +
         '</button>' +
-        '<button class="btn btn-outline" data-act="sync-down"' + (busy ? ' disabled' : '') + '>从云端恢复</button>' +
-        '<button class="btn btn-outline" data-act="toggle-sync-cfg">同步设置</button>' +
+        '<button class="sync-btn cloud-down" data-act="sync-down"' + (busy ? ' disabled' : '') + '>' +
+          '<span class="ico">⬇</span>' +
+          '<span class="t">从云端恢复</span>' +
+        '</button>' +
       '</div>' +
       '<div class="sync-tip">' +
-        (lastPush
-          ? '上次同步：<b>' + esc(lastPush) + '</b>'
-          : '还没同步过，建议开启自动备份') +
+        '把本机账本加密上传到仓库固定路径，每次覆盖历史；换手机/电脑打开同一网址后点「从云端恢复」，输入同一同步口令即可拿到最新数据。' +
+      '</div>' +
+      '<div class="sync-status">' +
+        (lastPush ? '上次同步：<b>' + esc(lastPush) + '</b>' : '还没同步过') +
       '</div>';
 
     if (state.msg) {
