@@ -157,3 +157,34 @@ test('分页上限 300 条', () => {
   assert.ok(deskRows <= 301, '电脑端单页行数 ≤300，实际 ' + deskRows);
   assert.ok(html.includes('共 401 条'));
 });
+
+/* ========== 手机版库存页：搜索框与按钮同行排列 + 按钮显示图标 ========== */
+
+test('手机版库存页：搜索栏 search-bar 内 🔍 图标 + 输入框 + 扫码按钮同行（同一容器）', () => {
+  const { ctx, state } = fresh();
+  const html = page.render(ctx, state);
+  // 手机端搜索栏：.search-bar 容器内依次是 .ico、input、.btn-scan（同行结构）
+  const m = html.match(/<div class="search-bar">([\s\S]*?)<\/div>/);
+  assert.ok(m, '应有 search-bar 容器');
+  const bar = m[1];
+  assert.ok(bar.includes('<span class="ico">🔍</span>'), '含 🔍 图标');
+  assert.ok(/<input class="input" data-input="keyword" placeholder="搜款号 \/ 名称 \/ 条码（可扫码）"/.test(bar), '含搜索输入框');
+  assert.ok(/<button class="btn-scan" data-act="scan" aria-label="扫码">▦<\/button>/.test(bar), '含图标按钮（▦）');
+  // 三者顺序：图标 → 输入框 → 按钮
+  assert.ok(bar.indexOf('ico') < bar.indexOf('data-input="keyword"'), '图标在输入框前');
+  assert.ok(bar.indexOf('data-input="keyword"') < bar.indexOf('btn-scan'), '输入框在按钮前');
+});
+
+test('手机版库存页：base.css 定义搜索栏同行 flex 与图标按钮样式', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'base.css'), 'utf8');
+  // .search-bar 使用 flex 同行
+  assert.ok(/\.search-bar\s*{[^}]*display:\s*flex/.test(css), '.search-bar 应为 flex 同行排列');
+  assert.ok(/\.search-bar\s*{[^}]*align-items:\s*center/.test(css), '.search-bar 应垂直居中');
+  assert.ok(/\.search-bar \.input\s*{[^}]*flex:\s*1/.test(css), '输入框应 flex:1 占主体');
+  // .btn-scan 图标按钮样式（圆角、背景色、图标居中）
+  assert.ok(/\.btn-scan\s*{[^}]*border-radius:\s*12px/.test(css), '按钮应有圆角');
+  assert.ok(/\.btn-scan\s*{[^}]*background:\s*var\(--c-mint-100/.test(css), '按钮应有浅绿背景');
+  assert.ok(/\.btn-scan\s*{[^}]*justify-content:\s*center/.test(css), '按钮内图标应居中');
+});
