@@ -1,0 +1,99 @@
+/* mobile.css —— <768px：底部 Tab、单列 + v2 薄荷绿适配
+ * 关键：把整个 .app-main 顶部留出空间容纳薄荷绿 banner
+ */
+
+@media (max-width: 767px) {
+  .app-sidebar { display: none; }
+
+  /* Tab 栏：v2 改用薄荷绿激活态 */
+  .app-tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    height: var(--tab-h);
+    background: #fff;
+    border-top: 1px solid var(--c-border);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    border: none;
+    background: none;
+    color: var(--c-text-weak);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 0;
+    min-height: var(--tab-h);
+  }
+  .tab-item .ico { font-size: 22px; line-height: 1; }
+  .tab-item.on {
+    color: var(--c-mint-600);
+    font-weight: 600;
+  }
+
+  /* 首页 stat 卡片 2x2 */
+  .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+  /* 首页显著「开单」按钮 - 手机尺寸 */
+  .home-top { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .home-sale-btn { min-width: 92px; padding: 10px 12px; border-radius: var(--radius); }
+  .home-sale-btn .ico { font-size: 24px; }
+  .home-sale-btn .t { font-size: 16px; letter-spacing: 1px; }
+  .home-sale-btn .s { font-size: 11px; }
+
+  /* v2 stat-card 在手机上更紧凑 */
+  .stat-card { padding: 14px; min-height: 88px; }
+  .stat-card .value { font-size: 22px; }
+
+  /* v2 quick-circle 6 列布局 */
+  .quick-circles { grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .quick-circle .disc { width: 44px; height: 44px; font-size: 20px; }
+  .quick-circle .text { font-size: 11px; }
+
+  /* 主区 padding：保留底部 Tab + 安全区 */
+  .app-main { padding: 12px 12px calc(var(--tab-h) + 28px); }
+
+  /* 老式快捷入口网格（兼容旧逻辑）*/
+  .quick-grid { grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .quick-item { padding: 8px 2px; font-size: 11px; }
+  .quick-item .ico { font-size: 20px; }
+
+  table.tbl { font-size: 13px; }
+  table.tbl th, table.tbl td { padding: 7px 6px; }
+
+  .modal-mask { align-items: flex-end; }
+  .modal { border-radius: var(--radius-xl) var(--radius-xl) 0 0; max-height: 88vh; }
+
+  .desktop-only { display: none !important; }
+
+  /* 开单页：底部固定结算条 */
+  .checkout-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: var(--tab-h);
+    z-index: 35;
+    background: #fff;
+    border-top: 1px solid var(--c-border);
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 -2px 10px rgba(17, 24, 39, .06);
+  }
+
+  /* 电脑端组件在手机上隐藏 */
+  .desktop-only { display: none !important; }
+
+  /* 概览标题在手机上小一档 */
+  .overview-head .title { font-size: 22px; letter-spacing: 1px; }
+}
