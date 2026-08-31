@@ -19,13 +19,15 @@ function seedShop(ctx) {
   ctx.touch('skus', ctx.data.skus[0]);
 }
 
-test('首页：渲染含今日概览与快捷入口', () => {
+test('首页：渲染含今日概览与快捷入口（开单卡片已移至「我的→常用入口」）', () => {
   const ctx = newCtx();
   seedShop(ctx);
   const html = home.render(ctx, home.init(ctx));
   assert.ok(/今日营收/.test(html), '应有今日营收卡');
-  assert.ok(/去开单/.test(html), '应有去开单按钮');
+  assert.ok(!/去开单/.test(html), '首页不再放置「去开单」大按钮（已移至我的→常用入口）');
+  assert.ok(!/data-page="sale"/.test(html), '首页快捷入口不应再含开单入口');
   assert.ok(/快捷入口/.test(html), '应有快捷入口');
+  assert.ok(/进货/.test(html) && /报表/.test(html), '快捷入口保留进货/报表等常用入口');
 });
 
 test('首页：未备份时显示提醒条', () => {

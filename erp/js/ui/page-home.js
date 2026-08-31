@@ -137,7 +137,6 @@
         '</div>';
 
       var quick = C.quickGrid([
-        { page: 'sale', icon: '🛒', text: '开单' },
         { page: 'purchase', icon: '📥', text: '进货' },
         { page: 'product', icon: '📦', text: '商品' },
         { page: 'inventory', icon: '📋', text: '库存' },
@@ -151,7 +150,6 @@
         backupReminder(ctx) +
         todoBar(ctx) +
         '<div class="card mb8"><div class="row" style="align-items:center">' + st + '</div></div>' +
-        '<button class="btn btn-primary btn-block btn-lg mb8" data-act="go" data-page="sale">＋ 去开单</button>' +
         '<div class="card mb8"><h3 class="card-title">快捷入口</h3>' + quick + '</div>' +
         desktopExtras(ctx)
       );

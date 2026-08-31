@@ -296,15 +296,15 @@
     return !!(el && el.getAttribute && el.getAttribute('data-live') === '1');
   };
 
+  // 底部导航只保留最高频的三个入口；其余（开单/进货/商品/记账/报表/设置）统一收进「我的 → 常用入口」
   function navItems() {
     return [
       { name: 'home', icon: '📊', text: '首页' },
-      { name: 'sale', icon: '🛒', text: '开单' },
       { name: 'inventory', icon: '📋', text: '库存' },
-      { name: 'report', icon: '📈', text: '报表' },
       { name: 'mine', icon: '👤', text: '我的' }
     ];
   }
+  app.navItems = navItems;
 
   function renderNav(page) {
     var bar = document.querySelector('.app-tabbar');
