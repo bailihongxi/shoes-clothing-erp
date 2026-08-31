@@ -1,9 +1,18 @@
 /**
- * ui/page-mine.js —— 我的（店铺信息 + 云同步 + 常用入口 + 关于）
+ * ui/page-mine.js —— 我的（v2 薄荷绿 UI 重设计）
+ *
+ * 设计图 1-3（手机）：
+ * - 薄荷绿 banner「我的」
+ * - 店铺卡片：圆形头像 + 店铺名 + 副标题「进销存记账 · 个体工商户」+ 右箭头
+ * - 云同步卡片：标题 + 3 按钮（同步到云端 / 从云端恢复 / 同步设置）+ 副文字
+ * - 8 格圆形快捷入口（2 行 4 列）：开单 / 进货 / 商品 / 供应商 / 库存 / 记账中心 / 报表 / 设置
+ * - 底部版本信息：v2.0 / 数据存储于本机 IndexedDB / 自动备份保障数据安全
  *
  * 云同步（问题5）：手机端一键把账本加密上传到 GitHub 仓库固定路径（覆盖历史），
  * 另一台设备打开 GitHub Pages 页面 → 「从云端恢复」→ 输入同一同步口令即可覆盖本地。
  * Token 与口令只存本机 localStorage，不进 Git、不进备份、不进上传的快照。
+ *
+ * 关于 / 常用入口 / 同步设置等关键能力保留（兼容既有断言）。
  */
 (function (root, factory) {
   var isNode = typeof module !== 'undefined' && module.exports;
@@ -137,7 +146,6 @@
             'ok'
           );
         });
-        return true;
       },
 
       /** 从云端恢复（下载解密，覆盖本地） */
@@ -175,83 +183,83 @@
         }
         run();
         return true;
+      },
+
+      /** 跳转店铺设置 */
+      'go-shop-edit': function (ctx, state) {
+        if (ERP.app && ERP.app.go) ERP.app.go('setting');
+        else if (ui.toast) ui.toast('请到设置页修改店铺信息', 'ok');
       }
     },
 
     render: function (ctx, state) {
-      var s = ctx.settings;
-      var info =
-        '<div class="card mb8"><div class="row" style="align-items:center;gap:12px">' +
-        '<div class="avatar">👟</div>' +
-        '<div><div class="strong">' + esc(s.shopName || '我的鞋服店') + '</div>' +
-        '<div class="muted small">鞋服进销存记账 · 本地离线可用</div></div>' +
-        '</div></div>';
-
-      var links = C.quickGrid([
-        { page: 'sale', icon: '🛒', text: '开单' },
-        { page: 'purchase', icon: '📥', text: '进货' },
-        { page: 'product', icon: '📦', text: '商品' },
-        { page: 'supplier', icon: '🏭', text: '供应商' },
-        { page: 'inventory', icon: '📋', text: '库存' },
-        { page: 'account', icon: '💰', text: '记账中心' },
-        { page: 'report', icon: '📈', text: '报表' },
-        { page: 'setting', icon: '⚙️', text: '设置' }
-      ]);
-
-      var about =
-        '<div class="card"><h3 class="card-title">关于</h3>' +
-        '<ul class="about-list">' +
-        '<li>版本：v1.0（schema v' + schema.VERSION + '）</li>' +
-        '<li>部署：电脑双击 index.html 即可用；手机端经 https 托管可启用实时扫码与蓝牙打印</li>' +
-        '<li>数据：全部保存在本机浏览器（IndexedDB），请勿清除浏览器数据</li>' +
-        '<li>备份纪律：每天导出一份账本，电脑 + 网盘各存一份</li>' +
-        '</ul></div>';
-
-      return (
-        '<div class="page-head"><h2>我的</h2></div>' +
-        info +
-        renderSync(state) +
-        '<div class="card mb8"><h3 class="card-title">常用入口</h3>' + links + '</div>' +
-        about
-      );
+      return mobileMine(ctx, state);
     }
   };
 
-  /* ---------------- 云同步卡片 ---------------- */
+  /* ---------------- 手机端我的（v2 设计图 1-3） ---------------- */
 
-  function renderSync(state) {
+  function mobileMine(ctx, state) {
+    var s = ctx.settings || {};
     var cfg = state.cfg || sync.defaultConfig();
+
+    var h = '';
+
+    // 1. 薄荷绿 banner
+    h += '<div class="page-banner mine-banner">' +
+      '<div class="banner-title">我的</div>' +
+    '</div>';
+
+    // 2. 店铺信息卡片（圆形头像 + 名称 + 副标题 + 右箭头）
+    h += '<div class="shop-info-card" data-act="go-shop-edit">' +
+      '<div class="avatar">👟</div>' +
+      '<div class="info">' +
+        '<div class="name">' + esc(s.shopName || '我的鞋服店') + '</div>' +
+        '<div class="sub">进销存记账 · 个体工商户</div>' +
+      '</div>' +
+      '<div class="arrow">›</div>' +
+    '</div>';
+
+    // 3. 云同步卡片
+    h += renderSyncCard(state, cfg);
+
+    // 4. 常用入口（8 格圆形 2 行 4 列）—— 关键字串「常用入口」保留
+    h += renderQuickGrid();
+
+    // 5. 关于 + 版本信息（保留「关于」字串以兼容既有测试）
+    h += renderAbout();
+
+    return h;
+  }
+
+  /** 云同步卡片 */
+  function renderSyncCard(state, cfg) {
     var busy = !!state.busy;
+    var lastPush = cfg.lastPushAt ? (util.fmtDateTime ? util.fmtDateTime(cfg.lastPushAt) : cfg.lastPushAt) : '';
 
-    var h = '<div class="card mb8"><h3 class="card-title">云同步（GitHub Pages）' +
-      '<button class="btn btn-sm" data-act="toggle-sync-cfg">' + (state.syncOpen ? '收起设置' : '同步设置') + '</button>' +
-      '</h3>';
-
-    h += '<div class="row" style="gap:8px;flex-wrap:wrap">' +
-      '<button class="btn btn-primary" data-act="sync-up"' + (busy ? ' disabled' : '') + '>' +
-      (busy ? '同步中…' : '☁️ 同步到云端') + '</button>' +
-      '<button class="btn" data-act="sync-down"' + (busy ? ' disabled' : '') + '>⬇️ 从云端恢复</button>' +
+    var h = '<div class="card sync-card">' +
+      '<div class="sync-title">☁ 云同步</div>' +
+      '<div class="sync-actions">' +
+        '<button class="btn btn-outline" data-act="sync-up"' + (busy ? ' disabled' : '') + '>' +
+          (busy ? '同步中…' : '同步到云端') +
+        '</button>' +
+        '<button class="btn btn-outline" data-act="sync-down"' + (busy ? ' disabled' : '') + '>从云端恢复</button>' +
+        '<button class="btn btn-outline" data-act="toggle-sync-cfg">同步设置</button>' +
+      '</div>' +
+      '<div class="sync-tip">' +
+        (lastPush
+          ? '上次同步：<b>' + esc(lastPush) + '</b>'
+          : '还没同步过，建议开启自动备份') +
       '</div>';
-
-    h += '<div class="small muted mt8">把本机账本加密上传到仓库固定路径，<b>每次覆盖历史</b>；' +
-      '换手机/电脑打开同一网址后点「从云端恢复」，输入同一同步口令即可拿到最新数据。</div>';
-
-    if (cfg.lastPushAt) {
-      h += '<div class="small mt8">最后同步：<b>' + esc(util.fmtDateTime ? util.fmtDateTime(cfg.lastPushAt) : cfg.lastPushAt) + '</b></div>';
-    } else {
-      h += '<div class="small weak mt8">还没同步过</div>';
-    }
-    if (cfg.lastPullAt) {
-      h += '<div class="small weak">最后恢复：' + esc(util.fmtDateTime ? util.fmtDateTime(cfg.lastPullAt) : cfg.lastPullAt) + '</div>';
-    }
 
     if (state.msg) {
       h += '<div class="notice ' + (state.msgType === 'err' ? 'notice-danger' : 'notice-info') + ' mt8">' +
         esc(state.msg) + '</div>';
     }
 
+    // 同步设置展开面板
     if (state.syncOpen) {
-      h += '<div class="mt8" style="border-top:1px solid var(--line,#e5e7eb);padding-top:8px">' +
+      h += '<div class="sync-cfg-panel">' +
         field('GitHub 用户名', 'owner', cfg.owner, 'bailihongxi') +
         field('仓库名', 'repo', cfg.repo, 'shoes-clothing-erp') +
         field('分支', 'branch', cfg.branch, 'gh-pages') +
@@ -266,11 +274,48 @@
         '<li>Token 与口令只存在这台设备的浏览器里，不会上传、不进 Git、不进备份文件。</li>' +
         '<li>口令丢了云端快照就解不开了，请自己记牢。</li>' +
         '</ul>' +
-        '</div>';
+      '</div>';
     }
 
     h += '</div>';
     return h;
+  }
+
+  /** 8 格圆形快捷入口（2 行 4 列），颜色匹配设计图 */
+  function renderQuickGrid() {
+    var items = [
+      { page: 'sale',      icon: '➕', text: '开单',     color: 'c-green' },
+      { page: 'purchase',  icon: '🛍', text: '进货',     color: 'c-teal' },
+      { page: 'product',   icon: '🛒', text: '商品',     color: 'c-blue' },
+      { page: 'supplier',  icon: '👤', text: '供应商',   color: 'c-yellow' },
+      { page: 'inventory', icon: '▦',  text: '库存',     color: 'c-teal' },
+      { page: 'account',   icon: '📋', text: '记账中心', color: 'c-purple' },
+      { page: 'report',    icon: '📊', text: '报表',     color: 'c-pink' },
+      { page: 'setting',   icon: '⚙', text: '设置',     color: 'c-gray' }
+    ];
+    var h = '<div class="card quick-grid-card"><h3 class="card-title">常用入口</h3><div class="quick-grid mine-quick">';
+    items.forEach(function (it) {
+      h += '<button class="quick-circle ' + it.color + '" data-act="go" data-page="' + esc(it.page) + '">' +
+        '<span class="disc">' + it.icon + '</span>' +
+        '<span class="text">' + esc(it.text) + '</span>' +
+      '</button>';
+    });
+    h += '</div></div>';
+    return h;
+  }
+
+  /** 关于 + 版本信息 */
+  function renderAbout() {
+    return (
+      '<div class="card about-card">' +
+        '<h3 class="card-title">关于</h3>' +
+        '<ul class="about-list">' +
+          '<li>版本：v2.0（schema v' + schema.VERSION + '）</li>' +
+          '<li>数据存储于本机 IndexedDB</li>' +
+          '<li>自动备份保障数据安全</li>' +
+        '</ul>' +
+      '</div>'
+    );
   }
 
   function field(label, name, value, placeholder, type) {
@@ -280,7 +325,7 @@
       'autocomplete="off" spellcheck="false"></div>';
   }
 
-  page.renderSync = renderSync;
+  page.renderSync = renderSyncCard;
 
   return page;
 });

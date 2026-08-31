@@ -148,7 +148,12 @@ test('分页上限 300 条', () => {
     });
   }
   const html = page.render(ctx, state);
-  const rows = html.split('<tr>').length - 1;
-  assert.ok(rows <= 301, '单页行数 ≤300，实际 ' + rows);
+  // v2 设计图：手机/电脑两套布局同时输出（CSS .mobile-only/.desktop-only 互斥显示）。
+  // 分页 300 是电脑端表格逻辑，单设备下不应 > 300 行 tr。
+  // 取 desktop-only 块内的 tr 数。
+  const deskMatch = html.match(/<div class="desktop-only">([\s\S]*?)<\/div>\s*$/);
+  assert.ok(deskMatch, '应有 desktop-only 块');
+  const deskRows = (deskMatch[1].match(/<tr>/g) || []).length;
+  assert.ok(deskRows <= 301, '电脑端单页行数 ≤300，实际 ' + deskRows);
   assert.ok(html.includes('共 401 条'));
 });

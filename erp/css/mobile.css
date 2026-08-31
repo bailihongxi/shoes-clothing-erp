@@ -44,7 +44,8 @@
   .grid-3 { grid-template-columns: repeat(3, 1fr); }
 
   /* 首页显著「开单」按钮 - 手机尺寸 */
-  .home-top { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .home-top { display: block; }
+  .home-top .overview-head { padding: 12px 12px 4px; }
   .home-sale-btn { min-width: 92px; padding: 10px 12px; border-radius: var(--radius); }
   .home-sale-btn .ico { font-size: 24px; }
   .home-sale-btn .t { font-size: 16px; letter-spacing: 1px; }
@@ -93,6 +94,28 @@
 
   /* 电脑端组件在手机上隐藏 */
   .desktop-only { display: none !important; }
+
+  /* v2 薄荷绿 banner 在手机上替代旧 app-header */
+  .app-header { display: none; }
+
+  /* v2 库存页 stat cards：手机端并排 2 列（左大右小） */
+  .inventory-stats {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 12px;
+    padding: 0 12px;
+    margin-bottom: 8px;
+  }
+  .stat-card-lg .big-value { font-size: 22px; font-weight: 700; line-height: 1.2; }
+  .stat-card-lg { padding: 16px; }
+  .stat-card-fund { padding: 16px; display: flex; flex-direction: column; justify-content: space-between; }
+  .stat-card-fund .value { font-size: 20px; font-weight: 700; }
+
+  /* v2 首页 stat-card：手机 2x2 紧凑 */
+  .home-top .stat-grid { padding: 0 12px; margin-top: -8px; }
+
+  /* v2 库存 segmented：手机端顶部间距 */
+  .inventory-seg { margin: 4px 12px 12px; }
 
   /* 概览标题在手机上小一档 */
   .overview-head .title { font-size: 22px; letter-spacing: 1px; }
