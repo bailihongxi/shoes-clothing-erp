@@ -34,8 +34,29 @@
       note: '',
       styleCode: '',
       keyword: '',
+      bulkPrice: '',
       editNo: null
     };
+  }
+
+  /**
+   * 批量设置进价（问题4）：把 value 一次性写入全部明细行。
+   * 纯函数，便于单测；返回 {ok, count, price, value, error}
+   * 注意：只改 form.items[*].costPrice（元字符串），逐行仍可再自定义修改。
+   */
+  function applyBulkPrice(form, value) {
+    var raw = String(value === undefined || value === null ? '' : value).trim();
+    if (!raw) return { ok: false, error: '请先填写要批量应用的进价' };
+    if (!/^\d+(\.\d{1,2})?$/.test(raw)) {
+      return { ok: false, error: '进价格式不对：请填 0 或正数，最多两位小数' };
+    }
+    if (!form.items || !form.items.length) {
+      return { ok: false, error: '还没有进货明细，先点上方色码格子添加' };
+    }
+    form.items.forEach(function (it) {
+      it.costPrice = raw;
+    });
+    return { ok: true, count: form.items.length, price: util.parseMoney(raw), value: raw };
   }
 
   var page = {
@@ -92,10 +113,12 @@
           return x.skuId === skuId;
         });
         if (!it) {
+          // 已填过批量进价 → 新增行直接沿用，省得再点一次「应用到全部」
+          var bulk = String(state.form.bulkPrice || '').trim();
           it = {
             skuId: skuId,
             qty: 0,
-            costPrice: product ? util.fenToYuan(product.costPrice || 0) : '0'
+            costPrice: bulk || (product ? util.fenToYuan(product.costPrice || 0) : '0')
           };
           state.form.items.push(it);
         }
@@ -112,6 +135,7 @@
         it.qty = isNaN(v) || v < 0 ? 0 : v;
       },
 
+      /** 逐行自定义进价（批量应用后仍可单独改） */
       price: function (ctx, state, el) {
         var skuId = el.getAttribute('data-sku');
         var it = state.form.items.find(function (x) {
@@ -119,6 +143,22 @@
         });
         if (!it) return;
         it.costPrice = el.value;
+      },
+
+      /** 批量进价输入框：只记值，不重渲染（避免打断输入） */
+      'bulk-price': function (ctx, state, el) {
+        state.form.bulkPrice = el.value;
+      },
+
+      /** 批量进价「应用到全部明细」 */
+      'apply-bulk-price': function (ctx, state) {
+        var r = applyBulkPrice(state.form, state.form.bulkPrice);
+        if (!r.ok) {
+          ui.toast(r.error, 'err');
+          return false;
+        }
+        ui.toast('已把进价 ' + ui.money(r.price) + ' 应用到全部 ' + r.count + ' 行明细', 'ok');
+        return true;
       },
 
       'del-item': function (ctx, state, el) {
@@ -187,6 +227,7 @@
           note: doc.note || '',
           styleCode: doc.items.length ? doc.items[0].styleCode : '',
           keyword: '',
+          bulkPrice: '',
           editNo: no
         };
       },
@@ -459,6 +500,17 @@
     var t = total(form);
     h += '<div class="card"><div class="card-title">进货明细（' + form.items.length + ' 行）' +
       (form.items.length ? '<button class="btn btn-sm" data-act="clear-items">清空</button>' : '') + '</div>';
+
+    /* 批量进价：一次填好，全部明细同步；逐行仍可单独改 */
+    h += '<div class="row mb8" style="align-items:center;gap:6px;flex-wrap:wrap">' +
+      '<span class="small muted">批量进价</span>' +
+      '<input class="input" style="width:110px;text-align:right" data-input="bulk-price" data-name="bulkPrice" ' +
+      'inputmode="decimal" placeholder="如 50" value="' + esc(form.bulkPrice || '') + '">' +
+      '<span class="small muted">元</span>' +
+      '<button class="btn btn-sm btn-primary" data-act="apply-bulk-price">应用到全部明细</button>' +
+      '<span class="small weak">填一次，下面每行都同步；单行也能再改</span>' +
+      '</div>';
+
     if (!form.items.length) {
       h += ui.empty('还没有明细，点上方色码格子添加');
     } else {
@@ -526,6 +578,10 @@
     void form;
     return h;
   }
+
+  // 暴露纯函数便于单测
+  page.applyBulkPrice = applyBulkPrice;
+  page.emptyForm = emptyForm;
 
   return page;
 });
