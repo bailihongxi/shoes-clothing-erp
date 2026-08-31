@@ -34,13 +34,11 @@
 
 <div id="toast-wrap"></div>
 
-<!-- ============ 存储层（先于 engine.js，因其依赖 ERP.repo 写操作日志） ============ -->
-<script src="js/store/db.js"></script>
-<script src="js/store/repo.js"></script>
-
-<!-- ============ 核心逻辑层（纯函数，可在 Node 中测试） ============ -->
+<!-- ============ 核心基础层（无依赖） ============ -->
 <script src="js/core/util.js"></script>
 <script src="js/core/schema.js"></script>
+
+<!-- ============ 核心逻辑层（依赖 schema） ============ -->
 <script src="js/core/coding.js"></script>
 <script src="js/core/docNo.js"></script>
 <script src="js/core/inventory.js"></script>
@@ -51,6 +49,12 @@
 <script src="js/core/barcode.js"></script>
 <script src="js/core/sync.js"></script>
 <script src="js/core/cart.js"></script>
+
+<!-- ============ 存储层（依赖 core/schema） ============ -->
+<script src="js/store/db.js"></script>
+<script src="js/store/repo.js"></script>
+
+<!-- ============ 业务引擎（依赖 core/* + store/*，用 writeLog 兜底延迟读 ERP.repo） ============ -->
 <script src="js/core/engine.js"></script>
 
 <!-- ============ 界面层 ============ -->

@@ -4,15 +4,33 @@
  * 上层只调用统一 API：open / get / getAll / put / bulkPut / del / clear / count / query
  */
 (function (root, factory) {
-  var schema = (typeof module !== 'undefined' && module.exports)
-    ? require('../core/schema.js')
-    : root.ERP && root.ERP.schema;
-  var mod = factory(schema);
-  if (typeof module !== 'undefined' && module.exports) module.exports = mod;
+  // 防御：与 engine.js 同一套延迟加载模式，避免 IIFE 加载顺序错乱时锁定 undefined。
+  // 三步走：(1) Node 直接 require，缓存命中；(2) 浏览器立刻尝试取 root.ERP.schema；
+  // (3) 即便闭包变量是 null，下面的 schemaRef() / dataRef() 仍能在函数调用时取到运行时值。
   root.ERP = root.ERP || {};
+  var isNode = typeof module !== 'undefined' && module.exports;
+  var E = root.ERP;
+  var schemaStatic = E.schema || (isNode ? require('../core/schema.js') : null);
+  var mod = factory(schemaStatic, E);
+  if (isNode) module.exports = mod;
   root.ERP.db = mod;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (schema) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (schema, ERP) {
   'use strict';
+
+  /**
+   * 运行时兜底：闭包内 schema 可能是 null（早期加载顺序错乱时），每次真正访问时
+   * 优先用最新的 ERP.schema。这与 issue11 修复对应：避免 IIFE 顶层把 null 锁进闭包。
+   */
+  function schemaRef() {
+    return (ERP && ERP.schema) || schema || null;
+  }
+  /**
+   * 常用静态数据的延迟读——所有 store 列表、KEY_PATH 等需要 schema 就位的接口都走它。
+   */
+  function safeKeyPath(name) {
+    var s = schemaRef();
+    return (s && s.KEY_PATH && s.KEY_PATH[name]) || 'id';
+  }
 
   /* ---------------- 内存后端（Node 测试 / 降级） ---------------- */
 
@@ -71,7 +89,7 @@
       for (var i = 0; i < stores.length; i++) {
         if (stores[i].name === name) return stores[i].keyPath;
       }
-      return (schema && schema.KEY_PATH[name]) || 'id';
+      return safeKeyPath(name);
     }
 
     function run(names, mode, fn) {
@@ -199,8 +217,10 @@
   /* ---------------- 统一 API ---------------- */
 
   function storeDefs() {
-    return Object.keys(schema.KEY_PATH).map(function (name) {
-      return { name: name, keyPath: schema.KEY_PATH[name] };
+    var s = schemaRef();
+    var kp = (s && s.KEY_PATH) || {};
+    return Object.keys(kp).map(function (name) {
+      return { name: name, keyPath: kp[name] };
     });
   }
 
@@ -210,6 +230,10 @@
    */
   async function create(opts) {
     opts = opts || {};
+    var s = schemaRef();
+    if (!s) {
+      throw new Error('db.create 失败：schema 模块尚未加载，请检查 index.html 脚本顺序（core/schema.js 必须早于 store/db.js）');
+    }
     var defs = storeDefs();
     var backend = opts.backend;
     if (!backend) {
@@ -217,12 +241,12 @@
         ? indexedDbBackend(indexedDB)
         : memoryBackend();
     }
-    var dbName = opts.name || schema.DB_NAME;
-    var version = opts.version || schema.DB_VERSION;
+    var dbName = opts.name || s.DB_NAME;
+    var version = opts.version || s.DB_VERSION;
     await backend.open(dbName, version, defs);
 
     function keyPathOf(store) {
-      return schema.KEY_PATH[store] || 'id';
+      return safeKeyPath(store);
     }
 
     var api = {
@@ -274,20 +298,24 @@
       },
       /** 导出全部数据（含 meta） */
       exportAll: async function () {
-        var data = { schemaVersion: schema.VERSION };
-        for (var i = 0; i < schema.DATA_STORES.length; i++) {
-          data[schema.DATA_STORES[i]] = await backend.getAll(schema.DATA_STORES[i]);
+        var s = schemaRef();
+        var data = { schemaVersion: (s && s.VERSION) || 1 };
+        var stores = (s && s.DATA_STORES) || [];
+        for (var i = 0; i < stores.length; i++) {
+          data[stores[i]] = await backend.getAll(stores[i]);
         }
         data.meta = await backend.getAll('meta');
         return data;
       },
       /** 整体覆盖导入 */
       importAll: async function (data) {
-        for (var i = 0; i < schema.DATA_STORES.length; i++) {
-          var name = schema.DATA_STORES[i];
+        var s = schemaRef();
+        var stores = (s && s.DATA_STORES) || [];
+        for (var i = 0; i < stores.length; i++) {
+          var name = stores[i];
           await backend.clear(name);
           if (Array.isArray(data[name]) && data[name].length) {
-            await backend.bulkPut(name, data[name], schema.KEY_PATH[name]);
+            await backend.bulkPut(name, data[name], safeKeyPath(name));
           }
         }
         await backend.clear('meta');

@@ -3,18 +3,24 @@
  * 业务层（core/engine）只操作 ctx.data，repo 负责落库与查询助手。
  */
 (function (root, factory) {
-  var schema = (typeof module !== 'undefined' && module.exports)
-    ? require('../core/schema.js')
-    : root.ERP && root.ERP.schema;
-  var util = (typeof module !== 'undefined' && module.exports)
-    ? require('../core/util.js')
-    : root.ERP && root.ERP.util;
-  var mod = factory(schema, util);
-  if (typeof module !== 'undefined' && module.exports) module.exports = mod;
+  // 防御：与 engine.js 同一套延迟加载模式，避免 IIFE 加载顺序错乱时锁定 undefined。
   root.ERP = root.ERP || {};
+  var isNode = typeof module !== 'undefined' && module.exports;
+  var E = root.ERP;
+  var schemaStatic = E.schema || (isNode ? require('../core/schema.js') : null);
+  var utilStatic = E.util || (isNode ? require('../core/util.js') : null);
+  var mod = factory(schemaStatic, utilStatic, E);
+  if (isNode) module.exports = mod;
   root.ERP.repo = mod;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (schema, util) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (schema, util, ERP) {
   'use strict';
+
+  /**
+   * 运行时兜底：闭包内 schema/util 可能是 null（早期加载顺序错乱时），函数实际调用时
+   * 优先用最新的 ERP.schema / ERP.util。这是 issue11 修复：避免 IIFE 顶层把 null 锁进闭包。
+   */
+  function schemaRef() { return (ERP && ERP.schema) || schema || null; }
+  function utilRef() { return (ERP && ERP.util) || util || null; }
 
   /**
    * 由纯数据构造工作上下文
@@ -25,11 +31,13 @@
 
     var ctx = {
       data: data,
-      settings: (data && data.settings) || schema.defaultSettings(),
+      settings: (data && data.settings) || (schemaRef() ? schemaRef().defaultSettings() : {}),
 
       touch: function (store, rec) {
         if (!rec) return;
-        var keyPath = schema.KEY_PATH[store];
+        var s = schemaRef();
+        if (!s || !s.KEY_PATH || !s.KEY_PATH[store]) return; // schema 未加载或未知 store，安全 no-op（不抛错）
+        var keyPath = s.KEY_PATH[store];
         var key = rec[keyPath];
         if (key === undefined || key === null) return;
         if (!dirty[store]) dirty[store] = Object.create(null);
@@ -94,14 +102,18 @@
 
   /** 从 db 载入全部数据 + 设置 */
   async function loadAll(db) {
-    var data = schema.emptyData();
-    for (var i = 0; i < schema.DATA_STORES.length; i++) {
-      var name = schema.DATA_STORES[i];
+    var s = schemaRef();
+    if (!s) {
+      throw new Error('repo.loadAll 失败：schema 模块尚未加载，请检查 index.html 脚本顺序（core/schema.js 必须早于 store/repo.js）');
+    }
+    var data = s.emptyData();
+    for (var i = 0; i < s.DATA_STORES.length; i++) {
+      var name = s.DATA_STORES[i];
       data[name] = await db.getAll(name);
     }
-    var settingsRec = await db.get('meta', schema.META_SETTINGS_KEY);
-    data.settings = schema.mergeSettings(settingsRec ? settingsRec.value : null);
-    data.lastBackupAt = await getMeta(db, schema.META_LAST_BACKUP_KEY);
+    var settingsRec = await db.get('meta', s.META_SETTINGS_KEY);
+    data.settings = s.mergeSettings(settingsRec ? settingsRec.value : null);
+    data.lastBackupAt = await getMeta(db, s.META_LAST_BACKUP_KEY);
     return data;
   }
 
@@ -132,15 +144,17 @@
 
   /** 保存设置（meta 表 + 内存） */
   async function saveSettings(db, settings) {
-    await db.put('meta', { key: schema.META_SETTINGS_KEY, value: settings });
+    var s = schemaRef();
+    await db.put('meta', { key: (s && s.META_SETTINGS_KEY) || 'settings', value: settings });
     return settings;
   }
 
   /** 记操作日志 */
   function log(ctx, action, detail) {
+    var u = utilRef();
     var rec = {
-      id: util.uuid('log'),
-      at: util.nowISO(),
+      id: u && typeof u.uuid === 'function' ? u.uuid('log') : ('log_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)),
+      at: u && typeof u.nowISO === 'function' ? u.nowISO() : new Date().toISOString(),
       action: action,
       detail: detail || ''
     };
