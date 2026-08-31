@@ -402,7 +402,7 @@ table.matrix td.cell.hit { outline: 2px solid var(--c-primary); background: var(
 .stat-card .icon.peach  { background: #ffe8d6;        color: #c2410c; }
 .stat-card .icon.lavender{ background: #ede9fe;       color: #6d28d9; }
 .stat-card .icon.lemon  { background: #fef3c7;        color: #a16207; }
-.stat-card .label { font-size: 13px; color: var(--c-text-sub); }
+.stat-card .label { font-size: 11px; color: var(--c-text-sub); letter-spacing: .5px; }
 .stat-card .value { font-size: 24px; font-weight: 700; color: var(--c-text-strong); font-variant-numeric: tabular-nums; }
 .stat-card .delta {
   display: inline-flex;

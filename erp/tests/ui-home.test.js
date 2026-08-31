@@ -3,6 +3,8 @@
  */
 const test = require('node:test');
 const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
 
 const { newCtx } = require('./helpers/ctx.js');
 const schema = require('../js/core/schema.js');
@@ -11,6 +13,9 @@ const util = require('../js/core/util.js');
 const home = require('../js/ui/page-home.js');
 const setting = require('../js/ui/page-setting.js');
 const mine = require('../js/ui/page-mine.js');
+
+const ROOT = path.join(__dirname, '..');
+const baseCss = fs.readFileSync(path.join(ROOT, 'css/base.css'), 'utf8');
 
 function seedShop(ctx) {
   ctx.data.products.push({ styleCode: 'X001', name: '小白鞋', category: '鞋', barcode: 'X001', costPrice: 50, salePrice: 129, status: 'on' });
@@ -158,4 +163,23 @@ test('我的页：渲染店铺信息与关于', () => {
 
 test('页面均注册到 ERP.pages', () => {
   assert.ok(home.name === 'home' && setting.name === 'setting' && mine.name === 'mine');
+});
+
+test('问题1：经营概览 stat-card 标签字号调小（营收/毛利等标签不再过大）', () => {
+  // 图2 参考：标签小、数值醒目 —— 标签字号应 ≤11px
+  const m = baseCss.match(/\.stat-card \.label\s*\{[^}]*\}/);
+  assert.ok(m, 'base.css 应有 .stat-card .label 规则');
+  const rule = m[0];
+  const size = rule.match(/font-size:\s*(\d+(?:\.\d+)?)px/);
+  assert.ok(size, '标签应显式声明 font-size');
+  assert.ok(parseFloat(size[1]) <= 11, '标签字号应 ≤11px（当前 ' + size[1] + 'px）');
+  // 数值仍醒目（> 标签字号，保持主次）
+  const v = baseCss.match(/\.stat-card \.value\s*\{[^}]*font-size:\s*(\d+(?:\.\d+)?)px/);
+  assert.ok(v && parseFloat(v[1]) > parseFloat(size[1]), '数值字号应大于标签字号');
+  // 首页渲染仍含 4 个指标标签文字
+  const ctx = newCtx();
+  seedShop(ctx);
+  const html = home.render(ctx, home.init(ctx));
+  assert.ok(/今日应收/.test(html) && /今日毛利/.test(html), '保留应收/毛利标签');
+  assert.ok(/今日开单/.test(html) && /预警款数/.test(html), '保留开单/预警标签');
 });
