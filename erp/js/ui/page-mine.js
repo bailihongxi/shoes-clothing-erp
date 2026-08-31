@@ -191,6 +191,7 @@
         { page: 'sale', icon: '🛒', text: '开单' },
         { page: 'purchase', icon: '📥', text: '进货' },
         { page: 'product', icon: '📦', text: '商品' },
+        { page: 'supplier', icon: '🏭', text: '供应商' },
         { page: 'inventory', icon: '📋', text: '库存' },
         { page: 'account', icon: '💰', text: '记账中心' },
         { page: 'report', icon: '📈', text: '报表' },
