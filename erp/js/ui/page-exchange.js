@@ -117,6 +117,8 @@
       'do-return': function (ctx, state) {
         var no = state.originalNo;
         if (!no) { ui.toast('请先选择原销售单', 'err'); return false; }
+        // 兜底：用户没改 input 时 state 仍为空，必须从 DOM 同步（issue12 修复）
+        syncQtyFromDom(state, 'return-qty', 'returnQty');
         var items = Object.keys(state.returnQty || {})
           .filter(function (k) { return state.returnQty[k] > 0; })
           .map(function (k) { return { skuId: k, qty: state.returnQty[k] }; });
@@ -166,6 +168,8 @@
       'do-exchange': function (ctx, state) {
         var no = state.originalNo;
         if (!no) { ui.toast('请先选择原销售单', 'err'); return false; }
+        // 兜底：用户没改 input 时 state 仍为空，必须从 DOM 同步（issue12 修复）
+        syncQtyFromDom(state, 'exch-return-qty', 'exchReturnQty');
         var returns = Object.keys(state.exchReturnQty || {})
           .filter(function (k) { return state.exchReturnQty[k] > 0; })
           .map(function (k) { return { skuId: k, qty: state.exchReturnQty[k] }; });
@@ -234,6 +238,27 @@
 
   function findRepl(state, skuId) {
     return state.replItems.find(function (x) { return x.skuId === skuId; });
+  }
+
+  /**
+   * 兜底：把当前视图里 [data-change="<dataChangeName>"] 的 input value
+   * 同步到 state[stateKey]（覆盖对应 skuId 的数量）。
+   *
+   * 必要性：input 的 value 是渲染时写死的默认值（如 maxQty），只有用户
+   * 实际改动时 `data-change` action 才会把值写回 state。如果用户直接
+   * 点「确认退货/换货」不改数量，state 里就是空的，校验会误报
+   * 「请填写数量」。本函数让 DOM 成为提交时的真值来源。
+   */
+  function syncQtyFromDom(state, dataChangeName, stateKey) {
+    if (typeof document === 'undefined' || !state[stateKey]) return;
+    var inputs = document.querySelectorAll('input[data-change="' + dataChangeName + '"]');
+    for (var i = 0; i < inputs.length; i++) {
+      var el = inputs[i];
+      var skuId = el.getAttribute('data-sku');
+      if (!skuId) continue;
+      var v = parseInt(el.value, 10);
+      state[stateKey][skuId] = isNaN(v) || v < 0 ? 0 : v;
+    }
   }
 
   function addRepl(ctx, state, skuId) {
