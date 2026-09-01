@@ -105,6 +105,8 @@
   app.enterAccount = async function enterAccount(account) {
     if (!account || !account.id) return app.ctx;
     app.db = await ERP.db.create({ name: ERP.schema.dbNameFor(account.id) });
+    // V2 存量单账号数据 → 账号1（仅首次进入账号1 且旧库有数据时迁移）
+    if (account.id === 'acct1') await app.migrateLegacyData();
     var data = await ERP.repo.loadAll(app.db);
     app.ctx = ERP.repo.createContext(data);
     applyAccountToSettings(account);
@@ -116,6 +118,26 @@
       enter();
     }
     return app.ctx;
+  };
+
+  /** V2 存量数据迁移：旧库 shoeErp → 账号1 库（只迁移一次） */
+  app.migrateLegacyData = async function migrateLegacyData() {
+    if (store().getItem('erp.migratedV3')) return { migrated: false, reason: 'already' };
+    var r = { migrated: false, reason: 'no-migrate-module' };
+    try {
+      if (ERP.migrate) {
+        r = await ERP.migrate.migrate(
+          function (name) { return ERP.db.create({ name: name }); },
+          'shoeErp',
+          ERP.schema.dbNameFor('acct1')
+        );
+      }
+    } catch (e) {
+      r = { migrated: false, reason: 'error' };
+    }
+    // 无论结果如何都标记，避免每次进入账号1 都检查旧库
+    store().setItem('erp.migratedV3', '1');
+    return r;
   };
 
   /** 退出登录：清会话回登录页 */
