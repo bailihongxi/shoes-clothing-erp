@@ -23,6 +23,7 @@
 
   var page = {
     name: 'login',
+    hideInNav: true, // V3：登录页不出现在侧栏/底栏导航
     init: function init(ctx, store) {
       return {
         store: store || null,

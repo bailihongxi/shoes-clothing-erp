@@ -153,6 +153,10 @@
     router().onChange(function () {
       render();
     });
+    // V3：登录成功后若仍停在 login 页（hash 为 #/login），自动跳转到首页，避免"点进入无反馈"
+    if (router().currentName && router().currentName() === 'login') {
+      router().go('home');
+    }
     render();
   }
 
