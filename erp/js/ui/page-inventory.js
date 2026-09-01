@@ -363,6 +363,8 @@
   function desktopFilters(ctx, st) {
     var cats = [];
     (ctx.data.products || []).forEach(function (p) {
+      // V3 经营范围：分类筛选项只含本账号分类
+      if (!schema.inScope(ctx.settings, p.category)) return;
       if (p.category && cats.indexOf(p.category) < 0) cats.push(p.category);
     });
     var opts = [{ value: '', text: '全部分类' }].concat(cats.map(function (c) {
@@ -388,6 +390,8 @@
     var kw = String(st.keyword || '').trim().toUpperCase();
     var cat = String(st.cat || '');
     return ctx.data.products.filter(function (p) {
+      // V3 经营范围：只显示本账号分类商品
+      if (!schema.inScope(ctx.settings, p.category)) return false;
       if (cat && String(p.category || '') !== cat) return false;
       if (!kw) return true;
       if (String(p.styleCode).toUpperCase().indexOf(kw) >= 0) return true;
@@ -547,6 +551,7 @@
       '<div class="row mb8"><input class="input" data-input="take-keyword" placeholder="搜索款号 / 名称 / 条码" value="' + esc(st.take.keyword) + '"></div>';
     var kw = String(st.take.keyword || '').toUpperCase();
     var styles = ctx.data.products.filter(function (p) {
+      if (!schema.inScope(ctx.settings, p.category)) return false; // V3 经营范围
       if (!kw) return true;
       return String(p.styleCode).toUpperCase().indexOf(kw) >= 0 ||
         String(p.name).toUpperCase().indexOf(kw) >= 0 ||
@@ -600,6 +605,7 @@
       '<div class="row mb8"><input class="input" data-input="take-keyword" placeholder="搜索款号 / 名称" value="' + esc(st.take.keyword) + '"></div>';
     var kw = String(st.take.keyword || '').toUpperCase();
     var styles = ctx.data.products.filter(function (p) {
+      if (!schema.inScope(ctx.settings, p.category)) return false; // V3 经营范围
       if (!kw) return true;
       return String(p.styleCode).toUpperCase().indexOf(kw) >= 0 ||
         String(p.name).toUpperCase().indexOf(kw) >= 0;

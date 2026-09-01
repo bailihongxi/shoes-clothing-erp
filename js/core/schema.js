@@ -66,6 +66,23 @@
 
     CATEGORIES: ['鞋', '服装', '裤', '配饰', '包袋', '其他'],
 
+    /** 本账号可见分类列表（经营范围过滤）：scopeCategories 为空=不限制，返回全部分类 */
+    categoriesFor: function categoriesFor(settings) {
+      var all = S.CATEGORIES.slice();
+      if (!settings) return all;
+      var sc = settings.scopeCategories;
+      if (!sc || !sc.length) return all;
+      return all.filter(function (c) { return sc.indexOf(c) >= 0; });
+    },
+
+    /** 判断某分类是否在本账号经营范围内（空 scope=不限制） */
+    inScope: function inScope(settings, category) {
+      if (!settings) return true;
+      var sc = settings.scopeCategories;
+      if (!sc || !sc.length) return true;
+      return sc.indexOf(category) >= 0;
+    },
+
     DEFAULT_CATEGORY_PREFIX: {
       鞋: 'X',
       服装: 'F',
