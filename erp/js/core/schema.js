@@ -17,6 +17,11 @@
     META_SETTINGS_KEY: 'settings',
     META_LAST_BACKUP_KEY: 'lastBackupAt',
 
+    /** V3 多账号：每账号独立数据库名 shoeErp_<acctId>；无账号（兼容旧库）用 shoeErp */
+    dbNameFor: function dbNameFor(acctId) {
+      return acctId ? 'shoeErp_' + acctId : 'shoeErp';
+    },
+
     STORES: {
       products: 'products',
       skus: 'skus',
@@ -122,6 +127,10 @@
   S.defaultSettings = function defaultSettings() {
     return {
       shopName: '我的鞋服店',
+      /** V3：本账号经营范围（分类白名单）；空数组=未限制（全部分类） */
+      scopeCategories: [],
+      /** V3：本账号头像（dataURL） */
+      avatar: '',
       categoryPrefix: Object.assign({}, S.DEFAULT_CATEGORY_PREFIX),
       defaultThreshold: 3,
       /** 一码一色码开关：true 时条码内容 = SKU id（默认关闭 = 款号） */

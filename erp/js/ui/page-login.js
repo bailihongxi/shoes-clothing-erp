@@ -95,6 +95,15 @@
     return h;
   };
 
+  /** 纯校验：账号+密码 → {ok, account|error}（Node 与浏览器共用，便于单测） */
+  page.loginWith = function loginWith(store, id, pwd) {
+    var list = accounts.load(store);
+    var acct = accounts.getById(list, id);
+    if (!acct) return { ok: false, error: '请先选择账号' };
+    if (!accounts.verify(acct, pwd)) return { ok: false, error: '密码错误，请重试' };
+    return { ok: true, account: accounts.strip(acct) };
+  };
+
   page.actions = {
     'pick-account': function (ctx, state, el) {
       state.selectedId = el.getAttribute('data-id');
@@ -136,20 +145,21 @@
       return true;
     },
 
-    /** 登录：校验密码。成功返回 {ok:true, account} 供 app 层切换数据空间；失败 toast */
+    /** 登录：校验密码。成功触发 app.onLogin 切换数据空间；失败提示 */
     'do-login': function (ctx, state, el, ev) {
-      var list = accounts.load(state.store);
-      var acct = accounts.getById(list, state.selectedId);
-      if (!acct) { state.error = '请先选择账号'; return false; }
-      if (!accounts.verify(acct, state.pwd)) {
-        state.error = '密码错误，请重试';
+      var r = page.loginWith(state.store, state.selectedId, state.pwd);
+      if (!r.ok) {
+        state.error = r.error;
         return false;
       }
-      // 记录当前登录账号（会话），供 app 切换数据空间
-      if (typeof root !== 'undefined' && root.ERP) {
-        root.ERP.currentAccount = accounts.strip(acct);
+      // 触发 app 登录流程（异步建库/进入）；返回 false 阻止默认 afterAction（此时 db 未就绪）
+      var g = (typeof globalThis !== 'undefined' ? globalThis : null) || (typeof self !== 'undefined' ? self : null);
+      if (g && g.ERP && g.ERP.app && g.ERP.app.onLogin) {
+        g.ERP.app.onLogin(r.account);
+      } else if (g && g.ERP) {
+        g.ERP.currentAccount = r.account;
       }
-      return { ok: true, account: accounts.strip(acct) };
+      return false;
     }
   };
 

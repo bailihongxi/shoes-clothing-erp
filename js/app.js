@@ -26,11 +26,50 @@
 
   /* ---------------- 启动 ---------------- */
 
+  function store() {
+    return (typeof localStorage !== 'undefined' && localStorage) || {
+      getItem: function () { return null; },
+      setItem: function () {}
+    };
+  }
+  var CURRENT_KEY = 'erp.currentAccount';
+  function loadCurrent() {
+    try {
+      var raw = store().getItem(CURRENT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+  function saveCurrent(acct) {
+    try { store().setItem(CURRENT_KEY, JSON.stringify(acct)); } catch (e) { /* ignore */ }
+  }
+  function clearCurrent() {
+    try { store().removeItem ? store().removeItem(CURRENT_KEY) : store().setItem(CURRENT_KEY, ''); } catch (e) { /* ignore */ }
+  }
+
+  /** 账号信息并入本账号 settings（店名/经营范围/头像，仅当未设置时） */
+  function applyAccountToSettings(account) {
+    if (!account || !app.ctx) return;
+    var s = app.ctx.settings;
+    if (!s.shopName || s.shopName === '我的鞋服店') s.shopName = account.shopName || s.shopName;
+    if (!s.scopeCategories || !s.scopeCategories.length) {
+      s.scopeCategories = (account.scopeCategories && account.scopeCategories.length)
+        ? account.scopeCategories.slice()
+        : (ERP.schema.ALL_CATEGORIES || []).slice();
+    }
+    if (!s.avatar && account.avatar) s.avatar = account.avatar;
+  }
+
+  /** 渲染登录页（V3：多账号选择 + 密码） */
+  function renderLogin() {
+    var page = ERP.pages && ERP.pages.login;
+    if (!page) return;
+    app.pageStates = Object.create(null);
+    if (!app.pageStates.login) app.pageStates.login = page.init(null, store());
+    app.main.innerHTML = page.render(null, app.pageStates.login);
+  }
+
   app.boot = async function boot() {
     if (typeof document === 'undefined') return null;
-    app.db = await ERP.db.create({});
-    var data = await ERP.repo.loadAll(app.db);
-    app.ctx = ERP.repo.createContext(data);
     app.main = document.getElementById('view');
 
     // 注册所有已加载的页面到路由
@@ -41,15 +80,51 @@
     }
 
     app.ready = true;
-
     bindGlobalEvents();
 
+    // V3：多账号登录——已有登录态直接进入，否则展示登录页
+    var saved = loadCurrent();
+    if (saved && saved.id) {
+      ERP.currentAccount = saved;
+      await app.enterAccount(saved);
+    } else {
+      renderLogin();
+    }
+    return app.ctx;
+  };
+
+  /** 登录成功：保存会话 + 按账号独立库进入 */
+  app.onLogin = async function onLogin(account) {
+    if (!account || !account.id) return;
+    ERP.currentAccount = account;
+    saveCurrent(account);
+    await app.enterAccount(account);
+  };
+
+  /** 切换/进入某账号的数据空间（独立 IndexedDB 库 shoeErp_<acctId>） */
+  app.enterAccount = async function enterAccount(account) {
+    if (!account || !account.id) return app.ctx;
+    app.db = await ERP.db.create({ name: ERP.schema.dbNameFor(account.id) });
+    var data = await ERP.repo.loadAll(app.db);
+    app.ctx = ERP.repo.createContext(data);
+    applyAccountToSettings(account);
+    app.pageStates = Object.create(null);
+    app.main = document.getElementById('view');
     if (app.ctx.settings.lock && app.ctx.settings.lock.enabled && app.ctx.settings.lock.hash) {
       showLock();
     } else {
       enter();
     }
     return app.ctx;
+  };
+
+  /** 退出登录：清会话回登录页 */
+  app.logout = function logout() {
+    clearCurrent();
+    ERP.currentAccount = null;
+    app.db = null;
+    app.ctx = null;
+    renderLogin();
   };
 
   function enter() {

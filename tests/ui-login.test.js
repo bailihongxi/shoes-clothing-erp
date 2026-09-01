@@ -58,19 +58,43 @@ test('登录页：选择账号后显示密码输入与进入按钮', () => {
 });
 
 test('登录页：初始密码 000000 校验通过返回账号；错误密码拒绝', () => {
-  const { ctx, state } = fresh();
+  const { ctx, state, store } = fresh();
   page.render(ctx, state);
-  page.actions['pick-account'](ctx, state, elAttr({ 'data-id': 'acct1' }));
-  state.pwd = '000000';
-  const ok = page.actions['do-login'](ctx, state, null, null);
+  const ok = page.loginWith(store, 'acct1', '000000');
   assert.ok(ok && ok.ok === true, '初始密码通过');
   assert.strictEqual(ok.account.id, 'acct1');
   assert.deepStrictEqual(ok.account.scopeCategories, ['鞋']);
+  assert.ok(!('hash' in ok.account), '登录返回账号不含哈希');
 
-  state.pwd = 'wrong1';
-  const bad = page.actions['do-login'](ctx, state, null, null);
-  assert.strictEqual(bad, false, '错误密码拒绝');
-  assert.ok(/密码错误/.test(state.error));
+  const bad = page.loginWith(store, 'acct1', 'wrong1');
+  assert.strictEqual(bad.ok, false, '错误密码拒绝');
+  assert.ok(/密码错误/.test(bad.error));
+});
+
+test('登录页：do-login 密码正确触发 app.onLogin；错误提示不触发', () => {
+  const { ctx, state } = fresh();
+  page.render(ctx, state);
+  page.actions['pick-account'](ctx, state, elAttr({ 'data-id': 'acct2' }));
+  state.pwd = '000000';
+  let loggedIn = null;
+  const orig = globalThis.ERP;
+  globalThis.ERP = { app: { onLogin: (acct) => { loggedIn = acct; } } };
+  try {
+    const r = page.actions['do-login'](ctx, state, null, null);
+    assert.strictEqual(r, false, 'do-login 返回 false（阻止默认 afterAction）');
+    assert.ok(loggedIn && loggedIn.id === 'acct2', '触发 onLogin 并传入账号');
+    assert.deepStrictEqual(loggedIn.scopeCategories, ['服装']);
+
+    // 错误密码：不触发，提示
+    loggedIn = null;
+    state.pwd = 'bad';
+    const r2 = page.actions['do-login'](ctx, state, null, null);
+    assert.strictEqual(r2, false);
+    assert.strictEqual(loggedIn, null, '错误密码不触发登录');
+    assert.ok(/密码错误/.test(state.error));
+  } finally {
+    globalThis.ERP = orig;
+  }
 });
 
 test('登录页：自建账号（密码一致）成功并自动选中', () => {
@@ -114,6 +138,7 @@ test('登录页：自建账号显示在列表，可再次登录', () => {
   const acct = accounts.findByUsername(list, 'newshop');
   state.selectedId = acct.id;
   state.pwd = '8888';
-  const r = page.actions['do-login'](ctx, state, null, null);
+  const r = page.loginWith(state.store, acct.id, '8888');
   assert.ok(r.ok === true);
+  assert.strictEqual(r.account.id, acct.id);
 });
