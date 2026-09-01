@@ -63,7 +63,6 @@
   function renderLogin() {
     var page = ERP.pages && ERP.pages.login;
     if (!page) return;
-    app.pageStates = Object.create(null);
     if (!app.pageStates.login) app.pageStates.login = page.init(null, store());
     app.main.innerHTML = page.render(null, app.pageStates.login);
   }
@@ -270,9 +269,9 @@
     });
   }
 
-  /** 找到动作处理函数：页面 → 全局 */
+  /** 找到动作处理函数：页面 → 全局（V3：未登录时走登录页 action） */
   function dispatch(name, el, ev) {
-    var page = router().current();
+    var page = ERP.currentAccount ? router().current() : loginPage();
     var state = stateOf(page);
     var fn = null;
     if (page && page.actions && page.actions[name]) fn = page.actions[name];
@@ -280,6 +279,10 @@
     else if (app.actions && app.actions[name]) fn = app.actions[name];
     if (!fn) return undefined;
     return fn(app.ctx, state, el, ev);
+  }
+
+  function loginPage() {
+    return (ERP.pages && ERP.pages.login) || null;
   }
 
   /**
@@ -372,6 +375,11 @@
 
   function render() {
     if (!app.ready) return;
+    // V3：未登录 → 只渲染登录页（不进入业务路由）
+    if (!ERP.currentAccount) {
+      renderLogin();
+      return;
+    }
     var page = router().current();
     if (!page) return;
     var state = stateOf(page);

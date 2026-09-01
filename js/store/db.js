@@ -132,25 +132,39 @@
       async open(dbName, version, storeDefs) {
         stores = storeDefs;
         return new Promise(function (resolve, reject) {
-          var openReq = idb.open(dbName, version);
-          openReq.onupgradeneeded = function () {
-            var db = openReq.result;
-            storeDefs.forEach(function (def) {
-              if (!db.objectStoreNames.contains(def.name)) {
-                db.createObjectStore(def.name, { keyPath: def.keyPath });
+          function doOpen(v) {
+            var openReq = idb.open(dbName, v);
+            openReq.onupgradeneeded = function () {
+              var db = openReq.result;
+              storeDefs.forEach(function (def) {
+                if (!db.objectStoreNames.contains(def.name)) {
+                  db.createObjectStore(def.name, { keyPath: def.keyPath });
+                }
+              });
+            };
+            openReq.onsuccess = function () {
+              var db = openReq.result;
+              // 补齐缺失 store：库已存在但缺表时，版本+1 重新触发 onupgradeneeded
+              var missing = storeDefs.filter(function (def) {
+                return !db.objectStoreNames.contains(def.name);
+              });
+              if (missing.length) {
+                var next = (db.version || version || 1) + 1;
+                db.close();
+                doOpen(next);
+                return;
               }
-            });
-          };
-          openReq.onsuccess = function () {
-            dbHandle = openReq.result;
-            resolve(dbHandle);
-          };
-          openReq.onerror = function () {
-            reject(openReq.error);
-          };
-          openReq.onblocked = function () {
-            reject(new Error('数据库被其他标签页占用，请关闭其他页面后重试'));
-          };
+              dbHandle = db;
+              resolve(db);
+            };
+            openReq.onerror = function () {
+              reject(openReq.error);
+            };
+            openReq.onblocked = function () {
+              reject(new Error('数据库被其他标签页占用，请关闭其他页面后重试'));
+            };
+          }
+          doOpen(version || 1);
         });
       },
       async get(store, key) {
