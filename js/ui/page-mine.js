@@ -21,12 +21,13 @@
   var ui = isNode ? require('./components.js') : (ERP.ui || null);
   var schema = isNode ? require('../core/schema.js') : (ERP.schema || null);
   var sync = isNode ? require('../core/sync.js') : (ERP.sync || null);
-  var mod = factory(ERP, util, ui, schema, sync);
+  var accounts = isNode ? require('../core/accounts.js') : (ERP.accounts || null);
+  var mod = factory(ERP, util, ui, schema, sync, accounts);
   if (isNode) module.exports = mod;
   root.ERP = root.ERP || {};
   root.ERP.pages = root.ERP.pages || {};
   root.ERP.pages.mine = mod;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (ERP, util, ui, schema, sync) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (ERP, util, ui, schema, sync, accounts) {
   'use strict';
 
   var C = ui;
@@ -41,9 +42,14 @@
     }
   }
 
-  /** 首次进入：读本机配置，owner/repo 为空时尝试从当前网址猜 */
+  /** V3：当前登录账号 id（同步配置按账号隔离） */
+  function currentAcctId() {
+    return (ERP && ERP.currentAccount && ERP.currentAccount.id) || null;
+  }
+
+  /** 首次进入：读本机配置（V3 按账号），owner/repo 为空时尝试从当前网址猜 */
   function initCfg() {
-    var cfg = sync.loadConfig(store());
+    var cfg = sync.loadConfig(store(), currentAcctId());
     if (!cfg.owner || !cfg.repo) {
       var loc = typeof location !== 'undefined' ? location : null;
       var g = sync.guessFromLocation(loc);
@@ -85,7 +91,11 @@
         syncOpen: false,
         busy: false,
         msg: '',
-        msgType: 'ok'
+        msgType: 'ok',
+        // V3：店铺资料编辑
+        editShop: false,
+        shopNameEdit: '',
+        avatarDataUrl: ''
       };
     },
 
@@ -104,7 +114,7 @@
 
       /** 保存同步设置到本机 */
       'save-sync-cfg': function (ctx, state) {
-        state.cfg = sync.saveConfig(store(), state.cfg);
+        state.cfg = sync.saveConfig(store(), state.cfg, currentAcctId());
         var v = sync.validateConfig(state.cfg);
         if (!v.ok) {
           state.msg = '已保存，但还差：' + v.errors.join('；');
@@ -121,7 +131,7 @@
       /** 一键同步到云端（加密上传，覆盖历史） */
       'sync-up': function (ctx, state) {
         if (state.busy) return false;
-        state.cfg = sync.saveConfig(store(), state.cfg);
+        state.cfg = sync.saveConfig(store(), state.cfg, currentAcctId());
         var v = sync.validateConfig(state.cfg);
         if (!v.ok) {
           state.syncOpen = true;
@@ -139,7 +149,7 @@
             return;
           }
           state.cfg.lastPushAt = r.at;
-          state.cfg = sync.saveConfig(store(), state.cfg);
+          state.cfg = sync.saveConfig(store(), state.cfg, currentAcctId());
           finish(
             state,
             '☁️ 已同步到云端（' + r.summaryText + '，' + Math.max(1, Math.round(r.bytes / 1024)) + ' KB），云端历史已被覆盖',
@@ -151,7 +161,7 @@
       /** 从云端恢复（下载解密，覆盖本地） */
       'sync-down': function (ctx, state) {
         if (state.busy) return false;
-        state.cfg = sync.saveConfig(store(), state.cfg);
+        state.cfg = sync.saveConfig(store(), state.cfg, currentAcctId());
         var v = sync.validateConfig(state.cfg);
         if (!v.ok) {
           state.syncOpen = true;
@@ -170,7 +180,7 @@
               return;
             }
             state.cfg.lastPullAt = util.nowISO();
-            state.cfg = sync.saveConfig(store(), state.cfg);
+            state.cfg = sync.saveConfig(store(), state.cfg, currentAcctId());
             finish(state, '⬇️ 已用云端快照覆盖本机（' + r.summaryText + '）', 'ok');
           });
         };
@@ -189,6 +199,76 @@
       'go-shop-edit': function (ctx, state) {
         if (ERP.app && ERP.app.go) ERP.app.go('setting');
         else if (ui.toast) ui.toast('请到设置页修改店铺信息', 'ok');
+      },
+
+      /** V3：展开/收起店铺资料编辑 */
+      'toggle-shop-edit': function (ctx, state) {
+        state.editShop = !state.editShop;
+        state.shopNameEdit = state.editShop ? (ctx.settings.shopName || '') : '';
+        state.avatarDataUrl = '';
+      },
+
+      /** 店铺名称输入 */
+      'shop-name-edit': function (ctx, state, el) {
+        state.shopNameEdit = el.value;
+      },
+
+      /** 头像文件选择 → 读为 dataURL 预览（保存时写入 settings.avatar） */
+      'pick-avatar': function (ctx, state, el) {
+        if (!el || !el.files || !el.files.length) return false;
+        var file = el.files[0];
+        if (!/^image\//.test(file.type || '')) {
+          if (ui.toast) ui.toast('请选择图片文件', 'err');
+          return false;
+        }
+        if (file.size > 512 * 1024) {
+          if (ui.toast) ui.toast('图片过大（≤500KB）', 'err');
+          return false;
+        }
+        var reader = new FileReader();
+        var self = state;
+        reader.onload = function (e) {
+          self.avatarDataUrl = String(e.target && e.target.result || '');
+          var a = app();
+          if (a && a.render) a.render();
+        };
+        reader.readAsDataURL(file);
+        return false;
+      },
+
+      /** 保存店铺资料（店名 + 头像）→ settings + 账号列表同步 */
+      'save-shop': function (ctx, state) {
+        var name = String(state.shopNameEdit || '').trim();
+        if (!name) {
+          if (ui.toast) ui.toast('店铺名称不能为空', 'err');
+          return false;
+        }
+        ctx.settings.shopName = name;
+        if (state.avatarDataUrl) ctx.settings.avatar = state.avatarDataUrl;
+        // 同步到账号列表（登录页展示用）
+        if (accounts && ERP.currentAccount) {
+          accounts.updateProfile(store(), ERP.currentAccount.id, {
+            shopName: name,
+            avatar: state.avatarDataUrl || (ctx.settings.avatar || '')
+          });
+          ERP.currentAccount.shopName = name;
+          if (state.avatarDataUrl) ERP.currentAccount.avatar = state.avatarDataUrl;
+        }
+        // 保存 settings 到库
+        var a = app();
+        if (a && a.saveSettings) a.saveSettings();
+        state.editShop = false;
+        state.msg = '店铺资料已保存';
+        state.msgType = 'ok';
+        if (ui.toast) ui.toast('店铺资料已保存', 'ok');
+        return true;
+      },
+
+      /** 切换账号：退出登录回登录页 */
+      'switch-account': function (ctx, state) {
+        var a = app();
+        if (a && a.logout) a.logout();
+        return false;
       }
     },
 
@@ -225,15 +305,36 @@
       '</div>';
     }
 
-    // 2. 店铺信息卡片（圆形头像 + 名称 + 副标题 + 右箭头）
-    h += '<div class="shop-info-card" data-act="go-shop-edit">' +
-      '<div class="avatar">👟</div>' +
+    // 2. 店铺信息卡片（头像 + 店名 + 经营范围 + 右箭头）—— V3：显示账号头像，可编辑
+    var scopeText = (ctx.settings.scopeCategories && ctx.settings.scopeCategories.length)
+      ? (ctx.settings.scopeCategories.join(' / ')) : '全部分类';
+    var avatarHtml = s.avatar
+      ? '<img class="avatar-img" src="' + esc(s.avatar) + '" alt="">'
+      : '<div class="avatar">👟</div>';
+    h += '<div class="shop-info-card" data-act="toggle-shop-edit">' +
+      avatarHtml +
       '<div class="info">' +
         '<div class="name">' + esc(s.shopName || '我的鞋服店') + '</div>' +
-        '<div class="sub">进销存记账 · 个体工商户</div>' +
+        '<div class="sub">经营：' + esc(scopeText) + '</div>' +
       '</div>' +
       '<div class="arrow">›</div>' +
     '</div>';
+
+    // V3：店铺资料编辑面板（店名 / 头像上传 / 切换账号）
+    if (state.editShop) {
+      h += '<div class="card mt8 shop-edit-box">' +
+        '<div class="card-title">店铺资料</div>' +
+        '<div class="field"><label>店铺名称</label>' +
+        '<input class="input" data-input="shop-name-edit" data-live="1" value="' + esc(state.shopNameEdit) + '" placeholder="如 我的鞋店"></div>' +
+        '<div class="field"><label>店铺头像</label>' +
+        '<div class="row wrap"><input type="file" accept="image/*" data-change="pick-avatar" style="max-width:220px">' +
+        (state.avatarDataUrl ? '<img class="avatar-preview" src="' + esc(state.avatarDataUrl) + '" alt="">' : '') +
+        '</div><div class="small muted">支持 JPG/PNG，建议 500KB 以内</div></div>' +
+        '<div class="row"><button class="btn btn-primary" data-act="save-shop">保存</button>' +
+        '<div class="spacer"></div>' +
+        '<button class="btn" data-act="switch-account">切换账号</button></div>' +
+      '</div>';
+    }
 
     // 3. 云同步卡片
     h += renderSyncCard(state, cfg);

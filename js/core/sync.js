@@ -44,13 +44,22 @@
     };
   };
 
-  /** 从 localStorage 之类的存储读配置（store 需实现 getItem/setItem） */
-  sync.loadConfig = function loadConfig(store) {
+  /** V3：按账号隔离同步配置 key 与默认路径（各账号数据互不干扰） */
+  sync.configKeyFor = function configKeyFor(acctId) {
+    return acctId ? sync.CONFIG_KEY + '.' + acctId : sync.CONFIG_KEY;
+  };
+  sync.defaultPathFor = function defaultPathFor(acctId) {
+    return acctId ? 'data/' + acctId + '/erp-snapshot.json' : 'data/erp-snapshot.json';
+  };
+
+  /** 从 localStorage 之类的存储读配置（store 需实现 getItem/setItem；acctId 可选，V3 按账号隔离） */
+  sync.loadConfig = function loadConfig(store, acctId) {
     var base = sync.defaultConfig();
+    base.path = sync.defaultPathFor(acctId);
     if (!store || !store.getItem) return base;
     var raw = null;
     try {
-      raw = store.getItem(sync.CONFIG_KEY);
+      raw = store.getItem(sync.configKeyFor(acctId));
     } catch (e) {
       return base;
     }
@@ -67,8 +76,9 @@
     }
   };
 
-  sync.saveConfig = function saveConfig(store, cfg) {
+  sync.saveConfig = function saveConfig(store, cfg, acctId) {
     var out = sync.defaultConfig();
+    out.path = sync.defaultPathFor(acctId);
     Object.keys(out).forEach(function (k) {
       if (cfg && cfg[k] !== undefined && cfg[k] !== null) out[k] = cfg[k];
     });
@@ -79,7 +89,7 @@
     out.path = out.path.replace(/^\/+|\/+$/g, '');
     if (store && store.setItem) {
       try {
-        store.setItem(sync.CONFIG_KEY, JSON.stringify(out));
+        store.setItem(sync.configKeyFor(acctId), JSON.stringify(out));
       } catch (e) { /* 隐私模式下写入失败：忽略，仅本次会话有效 */ }
     }
     return out;

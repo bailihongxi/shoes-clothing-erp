@@ -123,16 +123,16 @@ test('我的页：banner 标题「我的」', () => {
   assert.ok(/<div class="banner-title">我的<\/div>/.test(html), 'banner 标题应为「我的」');
 });
 
-test('我的页：店铺信息卡片（圆形头像 + 店铺名 + 副标题 + 右箭头）', () => {
+test('我的页：店铺信息卡片（圆形头像 + 店铺名 + 经营范围 + 右箭头，V3 点击打开资料编辑）', () => {
   const ctx = newCtx();
   ctx.settings.shopName = '潮流鞋坊';
   const html = minePage.render(ctx, minePage.init(ctx));
   assert.ok(/class="shop-info-card"/.test(html), '应有 shop-info-card');
   assert.ok(/<div class="avatar">/.test(html), '应有圆形头像');
   assert.ok(/潮流鞋坊/.test(html), '店铺名');
-  assert.ok(/进销存记账/.test(html), '副标题');
+  assert.ok(/经营：/.test(html), '副标题显示经营范围');
   assert.ok(/<div class="arrow">/.test(html), '应有右箭头');
-  assert.ok(/data-act="go-shop-edit"/.test(html), '店铺卡可点击跳转');
+  assert.ok(/data-act="toggle-shop-edit"/.test(html), '店铺卡点击打开资料编辑（V3）');
 });
 
 test('我的页：默认店铺名为「我的鞋服店」', () => {

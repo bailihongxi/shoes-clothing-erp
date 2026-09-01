@@ -336,6 +336,8 @@
       ui.searchBar({ value: form.keyword, placeholder: '搜索名称 / 款号 / 条码', scan: true });
     var kw = String(form.keyword || '').toUpperCase();
     var styles = ctx.data.products.filter(function (p) {
+      // V3 经营范围：非本账号分类商品不出现在选货区
+      if (!schema.inScope(ctx.settings, p.category)) return false;
       if (!kw) return p.status !== schema.STATUS.OFF;
       return (
         String(p.styleCode).toUpperCase().indexOf(kw) >= 0 ||

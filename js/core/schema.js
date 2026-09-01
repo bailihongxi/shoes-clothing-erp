@@ -17,6 +17,11 @@
     META_SETTINGS_KEY: 'settings',
     META_LAST_BACKUP_KEY: 'lastBackupAt',
 
+    /** V3 多账号：每账号独立数据库名 shoeErp_<acctId>；无账号（兼容旧库）用 shoeErp */
+    dbNameFor: function dbNameFor(acctId) {
+      return acctId ? 'shoeErp_' + acctId : 'shoeErp';
+    },
+
     STORES: {
       products: 'products',
       skus: 'skus',
@@ -60,6 +65,23 @@
     ],
 
     CATEGORIES: ['鞋', '服装', '裤', '配饰', '包袋', '其他'],
+
+    /** 本账号可见分类列表（经营范围过滤）：scopeCategories 为空=不限制，返回全部分类 */
+    categoriesFor: function categoriesFor(settings) {
+      var all = S.CATEGORIES.slice();
+      if (!settings) return all;
+      var sc = settings.scopeCategories;
+      if (!sc || !sc.length) return all;
+      return all.filter(function (c) { return sc.indexOf(c) >= 0; });
+    },
+
+    /** 判断某分类是否在本账号经营范围内（空 scope=不限制） */
+    inScope: function inScope(settings, category) {
+      if (!settings) return true;
+      var sc = settings.scopeCategories;
+      if (!sc || !sc.length) return true;
+      return sc.indexOf(category) >= 0;
+    },
 
     DEFAULT_CATEGORY_PREFIX: {
       鞋: 'X',
@@ -122,6 +144,10 @@
   S.defaultSettings = function defaultSettings() {
     return {
       shopName: '我的鞋服店',
+      /** V3：本账号经营范围（分类白名单）；空数组=未限制（全部分类） */
+      scopeCategories: [],
+      /** V3：本账号头像（dataURL） */
+      avatar: '',
       categoryPrefix: Object.assign({}, S.DEFAULT_CATEGORY_PREFIX),
       defaultThreshold: 3,
       /** 一码一色码开关：true 时条码内容 = SKU id（默认关闭 = 款号） */

@@ -22,13 +22,15 @@ test('图标资源文件存在（192/512/原始图）', () => {
   });
 });
 
-test('界面 logo：侧栏 / 手机头部 / 顶栏头像 / 锁屏均使用品牌图片', () => {
+test('界面 logo：侧栏 / 手机头部 / 顶栏头像 / 锁屏均使用品牌图片（V3：账号头像优先，品牌图回退）', () => {
   const appJs = read('js/app.js');
   const html = read('index.html');
-  // 侧栏
-  assert.ok(appJs.includes("sbrand.innerHTML = '<img class=\"logo\" src=\"assets/icon-192.png\""), '侧栏 brand 用 logo 图片');
-  // 手机头部
-  assert.ok(appJs.includes("brand.innerHTML = '<img class=\"brand-logo\" src=\"assets/icon-192.png\""), '手机头部 brand 用 logo 图片');
+  // 品牌图仍作为默认回退资源存在
+  assert.ok(appJs.includes('assets/icon-192.png'), 'app.js 含品牌图回退路径');
+  // V3：头像优先逻辑（侧栏/头部）
+  assert.ok(appJs.includes("var brandLogo = (app.ctx.settings.avatar) ? app.ctx.settings.avatar : 'assets/icon-192.png';"), '侧栏/头部头像优先逻辑');
+  assert.ok(appJs.includes('sbrand.innerHTML'), '侧栏 brand 渲染存在');
+  assert.ok(appJs.includes('brand.innerHTML'), '手机头部 brand 渲染存在');
   // 锁屏
   assert.ok(appJs.includes('<img class="lock-logo" src="assets/icon-192.png" alt="">'), '锁屏用 logo 图片');
   // 顶栏头像
@@ -53,10 +55,13 @@ test('manifest：PWA 图标指向 assets 下已存在文件', () => {
   });
 });
 
-test('首页 banner：手机/电脑端均显示品牌 logo 图片', () => {
+test('首页 banner：手机/电脑端显示店铺头像（无则品牌 logo）+ 动态店名', () => {
   const homeJs = read('js/ui/page-home.js');
   const css = read('css/base.css');
-  const count = (homeJs.match(/<div class="banner-title"><img class="banner-logo" src="assets\/icon-192\.png" alt="logo">我的鞋服店<\/div>/g) || []).length;
-  assert.strictEqual(count, 2, '手机端与电脑端 banner 各 1 处 logo（共 2 处）');
+  // V3：头像优先、品牌图回退、店名动态
+  const avatarCount = (homeJs.match(/ctx\.settings\.avatar/gi) || []).length;
+  assert.ok(avatarCount >= 2, '手机/电脑端 banner 均含头像优先逻辑（' + avatarCount + ' 处）');
+  assert.ok(homeJs.includes("'assets/icon-192.png'"), 'banner 含品牌图回退路径');
+  assert.ok(homeJs.includes("ctx.settings.shopName || '我的鞋服店'"), 'banner 店名动态显示账号店铺名');
   assert.ok(/\.page-banner \.banner-title \.banner-logo\s*{[^}]*border-radius:\s*50%/.test(css), 'banner logo 圆形样式');
 });

@@ -26,11 +26,49 @@
 
   /* ---------------- 启动 ---------------- */
 
+  function store() {
+    return (typeof localStorage !== 'undefined' && localStorage) || {
+      getItem: function () { return null; },
+      setItem: function () {}
+    };
+  }
+  var CURRENT_KEY = 'erp.currentAccount';
+  function loadCurrent() {
+    try {
+      var raw = store().getItem(CURRENT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+  function saveCurrent(acct) {
+    try { store().setItem(CURRENT_KEY, JSON.stringify(acct)); } catch (e) { /* ignore */ }
+  }
+  function clearCurrent() {
+    try { store().removeItem ? store().removeItem(CURRENT_KEY) : store().setItem(CURRENT_KEY, ''); } catch (e) { /* ignore */ }
+  }
+
+  /** 账号信息并入本账号 settings（店名/经营范围/头像，仅当未设置时） */
+  function applyAccountToSettings(account) {
+    if (!account || !app.ctx) return;
+    var s = app.ctx.settings;
+    if (!s.shopName || s.shopName === '我的鞋服店') s.shopName = account.shopName || s.shopName;
+    if (!s.scopeCategories || !s.scopeCategories.length) {
+      s.scopeCategories = (account.scopeCategories && account.scopeCategories.length)
+        ? account.scopeCategories.slice()
+        : (ERP.schema.ALL_CATEGORIES || []).slice();
+    }
+    if (!s.avatar && account.avatar) s.avatar = account.avatar;
+  }
+
+  /** 渲染登录页（V3：多账号选择 + 密码） */
+  function renderLogin() {
+    var page = ERP.pages && ERP.pages.login;
+    if (!page) return;
+    if (!app.pageStates.login) app.pageStates.login = page.init(null, store());
+    app.main.innerHTML = page.render(null, app.pageStates.login);
+  }
+
   app.boot = async function boot() {
     if (typeof document === 'undefined') return null;
-    app.db = await ERP.db.create({});
-    var data = await ERP.repo.loadAll(app.db);
-    app.ctx = ERP.repo.createContext(data);
     app.main = document.getElementById('view');
 
     // 注册所有已加载的页面到路由
@@ -41,15 +79,73 @@
     }
 
     app.ready = true;
-
     bindGlobalEvents();
 
+    // V3：多账号登录——已有登录态直接进入，否则展示登录页
+    var saved = loadCurrent();
+    if (saved && saved.id) {
+      ERP.currentAccount = saved;
+      await app.enterAccount(saved);
+    } else {
+      renderLogin();
+    }
+    return app.ctx;
+  };
+
+  /** 登录成功：保存会话 + 按账号独立库进入 */
+  app.onLogin = async function onLogin(account) {
+    if (!account || !account.id) return;
+    ERP.currentAccount = account;
+    saveCurrent(account);
+    await app.enterAccount(account);
+  };
+
+  /** 切换/进入某账号的数据空间（独立 IndexedDB 库 shoeErp_<acctId>） */
+  app.enterAccount = async function enterAccount(account) {
+    if (!account || !account.id) return app.ctx;
+    app.db = await ERP.db.create({ name: ERP.schema.dbNameFor(account.id) });
+    // V2 存量单账号数据 → 账号1（仅首次进入账号1 且旧库有数据时迁移）
+    if (account.id === 'acct1') await app.migrateLegacyData();
+    var data = await ERP.repo.loadAll(app.db);
+    app.ctx = ERP.repo.createContext(data);
+    applyAccountToSettings(account);
+    app.pageStates = Object.create(null);
+    app.main = document.getElementById('view');
     if (app.ctx.settings.lock && app.ctx.settings.lock.enabled && app.ctx.settings.lock.hash) {
       showLock();
     } else {
       enter();
     }
     return app.ctx;
+  };
+
+  /** V2 存量数据迁移：旧库 shoeErp → 账号1 库（只迁移一次） */
+  app.migrateLegacyData = async function migrateLegacyData() {
+    if (store().getItem('erp.migratedV3')) return { migrated: false, reason: 'already' };
+    var r = { migrated: false, reason: 'no-migrate-module' };
+    try {
+      if (ERP.migrate) {
+        r = await ERP.migrate.migrate(
+          function (name) { return ERP.db.create({ name: name }); },
+          'shoeErp',
+          ERP.schema.dbNameFor('acct1')
+        );
+      }
+    } catch (e) {
+      r = { migrated: false, reason: 'error' };
+    }
+    // 无论结果如何都标记，避免每次进入账号1 都检查旧库
+    store().setItem('erp.migratedV3', '1');
+    return r;
+  };
+
+  /** 退出登录：清会话回登录页 */
+  app.logout = function logout() {
+    clearCurrent();
+    ERP.currentAccount = null;
+    app.db = null;
+    app.ctx = null;
+    renderLogin();
   };
 
   function enter() {
@@ -173,9 +269,9 @@
     });
   }
 
-  /** 找到动作处理函数：页面 → 全局 */
+  /** 找到动作处理函数：页面 → 全局（V3：未登录时走登录页 action） */
   function dispatch(name, el, ev) {
-    var page = router().current();
+    var page = ERP.currentAccount ? router().current() : loginPage();
     var state = stateOf(page);
     var fn = null;
     if (page && page.actions && page.actions[name]) fn = page.actions[name];
@@ -183,6 +279,10 @@
     else if (app.actions && app.actions[name]) fn = app.actions[name];
     if (!fn) return undefined;
     return fn(app.ctx, state, el, ev);
+  }
+
+  function loginPage() {
+    return (ERP.pages && ERP.pages.login) || null;
   }
 
   /**
@@ -275,6 +375,11 @@
 
   function render() {
     if (!app.ready) return;
+    // V3：未登录 → 只渲染登录页（不进入业务路由）
+    if (!ERP.currentAccount) {
+      renderLogin();
+      return;
+    }
     var page = router().current();
     if (!page) return;
     var state = stateOf(page);
@@ -380,9 +485,10 @@
         .join('');
     }
     var brand = document.querySelector('.app-header .brand');
-    if (brand) brand.innerHTML = '<img class="brand-logo" src="assets/icon-192.png" alt="">' + (app.ctx.settings.shopName || '我的鞋服店');
+    var brandLogo = (app.ctx.settings.avatar) ? app.ctx.settings.avatar : 'assets/icon-192.png';
+    if (brand) brand.innerHTML = '<img class="brand-logo" src="' + brandLogo + '" alt="">' + (app.ctx.settings.shopName || '我的鞋服店');
     var sbrand = document.querySelector('.app-sidebar .brand');
-    if (sbrand) sbrand.innerHTML = '<img class="logo" src="assets/icon-192.png" alt="logo"> <span>' + (app.ctx.settings.shopName || '我的鞋服店') + '</span>';
+    if (sbrand) sbrand.innerHTML = '<img class="logo" src="' + brandLogo + '" alt="logo"> <span>' + (app.ctx.settings.shopName || '我的鞋服店') + '</span>';
 
     /* 电脑端顶栏（v2）：店名 + 铃铛红点（有低库存预警时亮） */
     var topShop = document.getElementById('top-shop-name');

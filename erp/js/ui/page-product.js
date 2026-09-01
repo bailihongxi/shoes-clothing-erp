@@ -47,9 +47,13 @@
   }
 
   function emptyForm() {
+    var cats = (ERP.app && ERP.app.ctx && ERP.app.ctx.settings)
+      ? schema.categoriesFor(ERP.app.ctx.settings)
+      : schema.CATEGORIES.slice();
     return {
       name: '',
-      category: '鞋',
+      // V3 经营范围：默认分类取本账号第一个可见分类
+      category: (cats && cats.length ? cats[0] : '鞋'),
       brand: '',
       costPrice: '',
       salePrice: '',
@@ -382,7 +386,10 @@
   /* ---------------- 列表 ---------------- */
 
   function renderList(ctx, state) {
-    var list = ctx.data.products.slice();
+    // V3 经营范围：商品列表只显示本账号分类商品
+    var list = ctx.data.products.filter(function (p) {
+      return schema.inScope(ctx.settings, p.category);
+    });
     var kw = String(state.keyword || '').trim().toUpperCase();
     if (kw) {
       list = list.filter(function (p) {
@@ -543,7 +550,7 @@
         name: 'category',
         value: form.category,
         on: 'field',
-        options: schema.CATEGORIES.map(function (c) {
+        options: schema.categoriesFor(ctx.settings).map(function (c) {
           return { value: c, text: c + '（' + coding.prefixOf(c, ctx.settings) + '）' };
         })
       }) + '</div>';
