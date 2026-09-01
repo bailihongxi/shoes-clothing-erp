@@ -167,12 +167,12 @@ test('我的页：9 格 3×3 九宫格快捷入口（开单/进货/商品/供应
   assert.strictEqual((m[1].match(/quick-circle/g) || []).length, 9, '应恰好 9 格');
 });
 
-test('我的页：关于卡片 + 版本 v2.0 + 数据存储于本机 IndexedDB', () => {
+test('我的页：关于卡片 + 版本 V3.0 + 数据存储于本机 IndexedDB', () => {
   const ctx = newCtx();
   const html = minePage.render(ctx, minePage.init(ctx));
   assert.ok(/class="card about-card"/.test(html), '应有 about-card');
   assert.ok(/关于/.test(html), '「关于」字串保留（兼容既有测试）');
-  assert.ok(/v2\.0/.test(html), '版本 v2.0');
+  assert.ok(/V3\.0/.test(html), '版本 V3.0');
   assert.ok(/IndexedDB/.test(html), 'IndexedDB 字串');
   assert.ok(/自动备份/.test(html), '自动备份字串');
 });
