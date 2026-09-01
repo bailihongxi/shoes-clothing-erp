@@ -90,3 +90,12 @@ test('db open：完整库不触发无谓升级', async () => {
   assert.strictEqual(fake._dbs.get('shoeErp_ok').version, 1, '完整库不升级版本');
   ALL_STORES.forEach((s) => assert.ok(d.stores.includes(s)));
 });
+
+test('db open：已升级到高版本(2)的完整库可再次打开，不抛版本过低错误', async () => {
+  // 回归：V3 修复缺表时版本+1 升级到 2 后，若再用固定 version 1 打开会抛
+  // "requested version is less than existing version"。修复后应以无版本探测方式正常打开。
+  const fake = makeFakeIndexedDB([{ name: 'shoeErp_up', version: 2, stores: ALL_STORES }]);
+  const d = await db.create({ backend: db.indexedDbBackend(fake), name: 'shoeErp_up' });
+  assert.strictEqual(fake._dbs.get('shoeErp_up').version, 2, '不降级不升级，保持 version 2');
+  ALL_STORES.forEach((s) => assert.ok(d.stores.includes(s), '高版本库 store 全部可访问'));
+});

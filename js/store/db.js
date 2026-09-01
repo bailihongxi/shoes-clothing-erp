@@ -132,26 +132,32 @@
       async open(dbName, version, storeDefs) {
         stores = storeDefs;
         return new Promise(function (resolve, reject) {
-          function doOpen(v) {
-            var openReq = idb.open(dbName, v);
-            openReq.onupgradeneeded = function () {
-              var db = openReq.result;
-              storeDefs.forEach(function (def) {
-                if (!db.objectStoreNames.contains(def.name)) {
-                  db.createObjectStore(def.name, { keyPath: def.keyPath });
-                }
-              });
-            };
+          function ensureStores(db) {
+            return storeDefs.filter(function (def) {
+              return !db.objectStoreNames.contains(def.name);
+            });
+          }
+          // upgrade=true 时以指定版本打开并触发 onupgradeneeded；否则无版本探测（不升级）
+          function doOpen(v, upgrade) {
+            var openReq = upgrade ? idb.open(dbName, v) : idb.open(dbName);
+            if (upgrade) {
+              openReq.onupgradeneeded = function () {
+                var db = openReq.result;
+                storeDefs.forEach(function (def) {
+                  if (!db.objectStoreNames.contains(def.name)) {
+                    db.createObjectStore(def.name, { keyPath: def.keyPath });
+                  }
+                });
+              };
+            }
             openReq.onsuccess = function () {
               var db = openReq.result;
-              // 补齐缺失 store：库已存在但缺表时，版本+1 重新触发 onupgradeneeded
-              var missing = storeDefs.filter(function (def) {
-                return !db.objectStoreNames.contains(def.name);
-              });
+              // 补齐缺失 store：库已存在但缺表（或新库空库）时，以 db.version+1 升级触发 onupgradeneeded
+              var missing = ensureStores(db);
               if (missing.length) {
-                var next = (db.version || version || 1) + 1;
+                var next = (db.version || 0) + 1;
                 db.close();
-                doOpen(next);
+                doOpen(next, true);
                 return;
               }
               dbHandle = db;
@@ -164,7 +170,7 @@
               reject(new Error('数据库被其他标签页占用，请关闭其他页面后重试'));
             };
           }
-          doOpen(version || 1);
+          doOpen(version || 1, false);
         });
       },
       async get(store, key) {
