@@ -124,17 +124,21 @@ test('desktop.css 已适配 v2：薄荷绿侧栏 + top-bar + 3 列开单布局',
   assert.ok(css.includes('.mobile-only'), 'desktop.css 应隐藏 mobile-only');
 });
 
-test('sw.js CACHE 已升级到 v6（问题15 全项目 UI v3 后重新预缓存）', () => {
+test('sw.js CACHE 已升级到 v7（V3 多账号后重新预缓存，修复手机登录空白页）', () => {
   const sw = readFile('sw.js');
-  assert.ok(sw.includes("CACHE = 'shoe-erp-v6'"), 'sw.js CACHE 应为 shoe-erp-v6');
-  assert.ok(!sw.includes("shoe-erp-v5'"), 'CACHE 不再是 v5（旧 PWA 不会重新预缓存）');
-  // SHELL 列表必须包含全部 CSS 文件 + 阶段②新增/修改的页面
+  assert.ok(sw.includes("CACHE = 'shoe-erp-v7'"), 'sw.js CACHE 应为 shoe-erp-v7');
+  assert.ok(!sw.includes("CACHE = 'shoe-erp-v6'"), 'CACHE 不再是 v6（旧 PWA 不会重新预缓存）');
+  // SHELL 列表必须包含全部 CSS 文件 + V3 新增文件
   assert.ok(sw.includes('./css/base.css'), 'SHELL 应包含 css/base.css');
   assert.ok(sw.includes('./css/mobile.css'), 'SHELL 应包含 css/mobile.css');
   assert.ok(sw.includes('./css/desktop.css'), 'SHELL 应包含 css/desktop.css');
   assert.ok(sw.includes('./css/print.css'), 'SHELL 应包含 css/print.css');
   assert.ok(sw.includes('./js/ui/page-inventory.js'), 'SHELL 应包含 page-inventory.js');
   assert.ok(sw.includes('./js/ui/page-mine.js'), 'SHELL 应包含 page-mine.js');
+  // V3 新增文件（缺失会导致手机端登录页空白）
+  assert.ok(sw.includes('./js/core/accounts.js'), 'SHELL 应包含 V3 accounts.js');
+  assert.ok(sw.includes('./js/core/legacy-migrate.js'), 'SHELL 应包含 V3 legacy-migrate.js');
+  assert.ok(sw.includes('./js/ui/page-login.js'), 'SHELL 应包含 V3 page-login.js');
 });
 
 test('CSS 文件无大括号不匹配（Node 简单静态校验）', () => {
