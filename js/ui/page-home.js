@@ -181,7 +181,7 @@
 
     return (
       '<div class="page-banner">' +
-        '<div class="banner-title">我的鞋服店</div>' +
+        '<div class="banner-title"><img class="banner-logo" src="assets/icon-192.png" alt="logo">我的鞋服店</div>' +
         '<div class="banner-sub">已备份 · 今天 09:12</div>' +
         '<button class="banner-action" data-act="go" data-page="setting" aria-label="通知">' +
           '🔔<span class="dot"></span>' +
@@ -205,7 +205,7 @@
 
     return (
       '<div class="page-banner">' +
-        '<div class="banner-title">我的鞋服店</div>' +
+        '<div class="banner-title"><img class="banner-logo" src="assets/icon-192.png" alt="logo">我的鞋服店</div>' +
         '<div class="banner-sub">已备份 · 今天 09:12</div>' +
         '<button class="banner-action" data-act="go" data-page="setting" aria-label="通知">' +
           '🔔<span class="dot"></span>' +

@@ -380,9 +380,9 @@
         .join('');
     }
     var brand = document.querySelector('.app-header .brand');
-    if (brand) brand.textContent = app.ctx.settings.shopName || '我的鞋服店';
+    if (brand) brand.innerHTML = '<img class="brand-logo" src="assets/icon-192.png" alt="">' + (app.ctx.settings.shopName || '我的鞋服店');
     var sbrand = document.querySelector('.app-sidebar .brand');
-    if (sbrand) sbrand.innerHTML = '👟 <span>' + (app.ctx.settings.shopName || '我的鞋服店') + '</span>';
+    if (sbrand) sbrand.innerHTML = '<img class="logo" src="assets/icon-192.png" alt="logo"> <span>' + (app.ctx.settings.shopName || '我的鞋服店') + '</span>';
 
     /* 电脑端顶栏（v2）：店名 + 铃铛红点（有低库存预警时亮） */
     var topShop = document.getElementById('top-shop-name');
@@ -414,7 +414,8 @@
     mask.id = 'lock-mask';
     mask.innerHTML =
       '<div class="card lock-card">' +
-      '<h3 style="margin-bottom:8px">🔒 ' + (app.ctx.settings.shopName || '我的鞋服店') + '</h3>' +
+      '<img class="lock-logo" src="assets/icon-192.png" alt="">' +
+      '<h3 style="margin-bottom:8px">' + (app.ctx.settings.shopName || '我的鞋服店') + '</h3>' +
       '<p class="muted small mb8">请输入打开密码</p>' +
       '<input class="input" id="lock-pwd" type="password" inputmode="numeric" placeholder="打开密码" autocomplete="off">' +
       '<div id="lock-err" class="small" style="color:#dc2626;min-height:20px"></div>' +

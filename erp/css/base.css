@@ -153,9 +153,20 @@ button, input, select, textarea {
   pointer-events: none;
 }
 .page-banner .banner-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 1px;
+}
+.page-banner .banner-title .banner-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, .55);
+  flex: 0 0 auto;
 }
 .page-banner .banner-sub {
   font-size: 12px;
@@ -732,6 +743,17 @@ table.matrix td.cell.hit { outline: 2px solid var(--c-primary); background: var(
   align-items: center;
   justify-content: center;
   font-size: 16px;
+}
+/* 品牌 logo 图片（侧栏 / 手机顶部 / 锁屏） */
+.app-sidebar .brand img.logo { object-fit: cover; border-radius: 8px; }
+.app-header .brand img.brand-logo {
+  width: 22px; height: 22px; border-radius: 50%;
+  object-fit: cover; vertical-align: -5px; margin-right: 6px;
+}
+.lock-card .lock-logo {
+  display: block; width: 60px; height: 60px;
+  border-radius: 50%; object-fit: cover;
+  margin: 0 auto 12px;
 }
 
 /* ---------- 首页显著「开单」按钮（v2 保留兼容）---------- */
