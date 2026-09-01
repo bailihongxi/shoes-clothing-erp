@@ -42,9 +42,14 @@
     }
   }
 
-  /** 首次进入：读本机配置，owner/repo 为空时尝试从当前网址猜 */
+  /** V3：当前登录账号 id（同步配置按账号隔离） */
+  function currentAcctId() {
+    return (ERP && ERP.currentAccount && ERP.currentAccount.id) || null;
+  }
+
+  /** 首次进入：读本机配置（V3 按账号），owner/repo 为空时尝试从当前网址猜 */
   function initCfg() {
-    var cfg = sync.loadConfig(store());
+    var cfg = sync.loadConfig(store(), currentAcctId());
     if (!cfg.owner || !cfg.repo) {
       var loc = typeof location !== 'undefined' ? location : null;
       var g = sync.guessFromLocation(loc);
@@ -109,7 +114,7 @@
 
       /** 保存同步设置到本机 */
       'save-sync-cfg': function (ctx, state) {
-        state.cfg = sync.saveConfig(store(), state.cfg);
+        state.cfg = sync.saveConfig(store(), state.cfg, currentAcctId());
         var v = sync.validateConfig(state.cfg);
         if (!v.ok) {
           state.msg = '已保存，但还差：' + v.errors.join('；');
@@ -126,7 +131,7 @@
       /** 一键同步到云端（加密上传，覆盖历史） */
       'sync-up': function (ctx, state) {
         if (state.busy) return false;
-        state.cfg = sync.saveConfig(store(), state.cfg);
+        state.cfg = sync.saveConfig(store(), state.cfg, currentAcctId());
         var v = sync.validateConfig(state.cfg);
         if (!v.ok) {
           state.syncOpen = true;
@@ -144,7 +149,7 @@
             return;
           }
           state.cfg.lastPushAt = r.at;
-          state.cfg = sync.saveConfig(store(), state.cfg);
+          state.cfg = sync.saveConfig(store(), state.cfg, currentAcctId());
           finish(
             state,
             '☁️ 已同步到云端（' + r.summaryText + '，' + Math.max(1, Math.round(r.bytes / 1024)) + ' KB），云端历史已被覆盖',
@@ -156,7 +161,7 @@
       /** 从云端恢复（下载解密，覆盖本地） */
       'sync-down': function (ctx, state) {
         if (state.busy) return false;
-        state.cfg = sync.saveConfig(store(), state.cfg);
+        state.cfg = sync.saveConfig(store(), state.cfg, currentAcctId());
         var v = sync.validateConfig(state.cfg);
         if (!v.ok) {
           state.syncOpen = true;
@@ -175,7 +180,7 @@
               return;
             }
             state.cfg.lastPullAt = util.nowISO();
-            state.cfg = sync.saveConfig(store(), state.cfg);
+            state.cfg = sync.saveConfig(store(), state.cfg, currentAcctId());
             finish(state, '⬇️ 已用云端快照覆盖本机（' + r.summaryText + '）', 'ok');
           });
         };
