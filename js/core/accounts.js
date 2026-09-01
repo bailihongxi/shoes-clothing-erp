@@ -153,6 +153,20 @@
     return { ok: true, account: api.strip(account) };
   };
 
+  /** 更新账号资料（店名/头像），供「我的」页保存 */
+  api.updateProfile = function updateProfile(store, id, patch) {
+    var list = api.load(store);
+    var acct = api.getById(list, id);
+    if (!acct) return { ok: false, error: '账号不存在' };
+    patch = patch || {};
+    if (typeof patch.shopName === 'string' && String(patch.shopName).trim()) {
+      acct.shopName = String(patch.shopName).trim();
+    }
+    if (typeof patch.avatar === 'string') acct.avatar = patch.avatar;
+    api.save(store, list);
+    return { ok: true, account: api.strip(acct) };
+  };
+
   /** 去掉敏感字段（hash）后的公开账号视图 */
   api.strip = function strip(a) {
     if (!a) return null;

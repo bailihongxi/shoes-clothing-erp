@@ -485,9 +485,10 @@
         .join('');
     }
     var brand = document.querySelector('.app-header .brand');
-    if (brand) brand.innerHTML = '<img class="brand-logo" src="assets/icon-192.png" alt="">' + (app.ctx.settings.shopName || '我的鞋服店');
+    var brandLogo = (app.ctx.settings.avatar) ? app.ctx.settings.avatar : 'assets/icon-192.png';
+    if (brand) brand.innerHTML = '<img class="brand-logo" src="' + brandLogo + '" alt="">' + (app.ctx.settings.shopName || '我的鞋服店');
     var sbrand = document.querySelector('.app-sidebar .brand');
-    if (sbrand) sbrand.innerHTML = '<img class="logo" src="assets/icon-192.png" alt="logo"> <span>' + (app.ctx.settings.shopName || '我的鞋服店') + '</span>';
+    if (sbrand) sbrand.innerHTML = '<img class="logo" src="' + brandLogo + '" alt="logo"> <span>' + (app.ctx.settings.shopName || '我的鞋服店') + '</span>';
 
     /* 电脑端顶栏（v2）：店名 + 铃铛红点（有低库存预警时亮） */
     var topShop = document.getElementById('top-shop-name');

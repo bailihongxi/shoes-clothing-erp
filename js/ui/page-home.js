@@ -178,10 +178,12 @@
     var today = todayStr();
     var dateObj = new Date(today + 'T00:00:00');
     var cnDate = dateObj.getFullYear() + '年' + (dateObj.getMonth() + 1) + '月' + dateObj.getDate() + '日';
+    var brandLogo = (ctx.settings.avatar) ? ctx.settings.avatar : 'assets/icon-192.png';
+    var shopName = ctx.settings.shopName || '我的鞋服店';
 
     return (
       '<div class="page-banner">' +
-        '<div class="banner-title"><img class="banner-logo" src="assets/icon-192.png" alt="logo">我的鞋服店</div>' +
+        '<div class="banner-title"><img class="banner-logo" src="' + esc(brandLogo) + '" alt="logo">' + esc(shopName) + '</div>' +
         '<div class="banner-sub">已备份 · 今天 09:12</div>' +
         '<button class="banner-action" data-act="go" data-page="setting" aria-label="通知">' +
           '🔔<span class="dot"></span>' +
@@ -202,10 +204,12 @@
     var today = todayStr();
     var dateObj = new Date(today + 'T00:00:00');
     var cnDate = dateObj.getFullYear() + '年' + (dateObj.getMonth() + 1) + '月' + dateObj.getDate() + '日';
+    var brandLogo = (ctx.settings.avatar) ? ctx.settings.avatar : 'assets/icon-192.png';
+    var shopName = ctx.settings.shopName || '我的鞋服店';
 
     return (
       '<div class="page-banner">' +
-        '<div class="banner-title"><img class="banner-logo" src="assets/icon-192.png" alt="logo">我的鞋服店</div>' +
+        '<div class="banner-title"><img class="banner-logo" src="' + esc(brandLogo) + '" alt="logo">' + esc(shopName) + '</div>' +
         '<div class="banner-sub">已备份 · 今天 09:12</div>' +
         '<button class="banner-action" data-act="go" data-page="setting" aria-label="通知">' +
           '🔔<span class="dot"></span>' +

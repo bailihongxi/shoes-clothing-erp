@@ -86,3 +86,34 @@ test('账号脱敏：publicList/strip 不暴露密码哈希', () => {
     assert.ok(!('password' in a), '公开视图不含明文密码');
   });
 });
+
+test('updateProfile：更新店名与头像，登录页同步可见', () => {
+  const store = memStore();
+  accounts.ensurePreset(store);
+  const r = accounts.updateProfile(store, 'acct1', { shopName: '老王鞋行', avatar: 'data:image/png;base64,abc' });
+  assert.ok(r.ok);
+  const acct = accounts.getById(accounts.load(store), 'acct1');
+  assert.strictEqual(acct.shopName, '老王鞋行');
+  assert.strictEqual(acct.avatar, 'data:image/png;base64,abc');
+  // 密码不受影响
+  assert.strictEqual(accounts.verify(acct, '000000'), true);
+});
+
+test('updateProfile：只改头像不影响店名；空店名忽略', () => {
+  const store = memStore();
+  accounts.ensurePreset(store);
+  accounts.updateProfile(store, 'acct1', { avatar: 'data:image/png;base64,x' });
+  let acct = accounts.getById(accounts.load(store), 'acct1');
+  assert.strictEqual(acct.shopName, '鞋店', '店名不变');
+  assert.strictEqual(acct.avatar, 'data:image/png;base64,x');
+  // 空店名被忽略
+  accounts.updateProfile(store, 'acct1', { shopName: '   ' });
+  acct = accounts.getById(accounts.load(store), 'acct1');
+  assert.strictEqual(acct.shopName, '鞋店');
+});
+
+test('updateProfile：账号不存在返回错误', () => {
+  const store = memStore();
+  const r = accounts.updateProfile(store, 'nope', { shopName: 'x' });
+  assert.strictEqual(r.ok, false);
+});
