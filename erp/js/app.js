@@ -32,7 +32,7 @@
       setItem: function () {}
     };
   }
-  var CURRENT_KEY = 'erp.currentAccount';
+  var CURRENT_KEY = 'shoeErp.currentAccount'; // 命名空间化：与家电等其他复制项目（erp.*）彻底隔离
   function loadCurrent() {
     try {
       var raw = store().getItem(CURRENT_KEY);
@@ -100,7 +100,7 @@
     await app.enterAccount(account);
   };
 
-  /** 切换/进入某账号的数据空间（独立 IndexedDB 库 shoeErp_<acctId>） */
+  /** 切换/进入某账号的数据空间（独立 IndexedDB 库 shoeClothingErp_<acctId>） */
   app.enterAccount = async function enterAccount(account) {
     if (!account || !account.id) return app.ctx;
     app.db = await ERP.db.create({ name: ERP.schema.dbNameFor(account.id) });
@@ -121,7 +121,7 @@
 
   /** V2 存量数据迁移：旧库 shoeErp → 账号1 库（只迁移一次） */
   app.migrateLegacyData = async function migrateLegacyData() {
-    if (store().getItem('erp.migratedV3')) return { migrated: false, reason: 'already' };
+    if (store().getItem('shoeErp.migratedV3')) return { migrated: false, reason: 'already' };
     var r = { migrated: false, reason: 'no-migrate-module' };
     try {
       if (ERP.migrate) {
@@ -135,7 +135,7 @@
       r = { migrated: false, reason: 'error' };
     }
     // 无论结果如何都标记，避免每次进入账号1 都检查旧库
-    store().setItem('erp.migratedV3', '1');
+    store().setItem('shoeErp.migratedV3', '1');
     return r;
   };
 

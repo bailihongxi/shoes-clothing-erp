@@ -1,7 +1,7 @@
 /**
  * core/legacy-migrate.js —— V2 存量单账号数据 → V3 账号1 库迁移
  *
- * 需求：V2 现有单账号数据（旧库 shoeErp）迁移到账号 1（库 shoeErp_acct1）。
+ * 需求：V2 现有单账号数据（旧库 shoeErp）迁移到账号 1（库 shoeClothingErp_acct1）。
  * 设计：createDb(name) 注入数据库工厂（浏览器用 ERP.db.create 走 indexedDB；测试传 memory backend）
  * 规则：target 已非空则跳过（不覆盖）；只迁移一次（调用方用 localStorage 标记）。
  */
