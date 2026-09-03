@@ -22,6 +22,7 @@
   // 命名空间化：与家电等其他复制项目彻底隔离（它们使用 erp.accounts 等通用 key）
   var ACCOUNTS_KEY = 'shoeErp.accounts';
   var LEGACY_ACCOUNTS_KEY = 'erp.accounts'; // 被其他项目（家电 ERP）污染的旧 key
+  var LEGACY_CURRENT_KEY = 'erp.currentAccount'; // 被其他项目写入的家电登录态残留
   var MAX_ACCOUNTS = 10;
   var DEFAULT_PASSWORD = '000000';
   var ALL_CATEGORIES = ['鞋', '服装', '裤', '配饰', '包袋', '其他'];
@@ -92,6 +93,10 @@
    */
   api.cleanupLegacy = function cleanupLegacy(store) {
     if (!store || !store.getItem || !store.removeItem) return false;
+    // 家电项目写入的旧登录态残留（erp.currentAccount）：一律清除（本项目用 shoeErp.currentAccount）
+    try {
+      store.removeItem(LEGACY_CURRENT_KEY);
+    } catch (e) { /* ignore */ }
     var raw = null;
     try {
       raw = store.getItem(LEGACY_ACCOUNTS_KEY);
