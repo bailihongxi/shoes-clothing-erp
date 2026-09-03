@@ -1,6 +1,6 @@
 /**
  * V3-阶段5：GitHub 同步按账号隔离（core/sync.js）
- * - 配置 key 按账号（erp.sync.config.<acctId>）
+ * - 配置 key 按账号（shoeErp.sync.config.<acctId>）
  * - 默认存储路径按账号（data/<acctId>/erp-snapshot.json）
  * - 各账号配置互不覆盖；无账号兼容旧 key/path
  */
@@ -18,10 +18,10 @@ function memStore(init) {
 }
 
 test('sync.configKeyFor：按账号隔离，无账号兼容旧 key', () => {
-  assert.strictEqual(sync.configKeyFor('acct1'), 'erp.sync.config.acct1');
-  assert.strictEqual(sync.configKeyFor('acct2'), 'erp.sync.config.acct2');
-  assert.strictEqual(sync.configKeyFor(null), 'erp.sync.config');
-  assert.strictEqual(sync.configKeyFor(''), 'erp.sync.config');
+  assert.strictEqual(sync.configKeyFor('acct1'), 'shoeErp.sync.config.acct1');
+  assert.strictEqual(sync.configKeyFor('acct2'), 'shoeErp.sync.config.acct2');
+  assert.strictEqual(sync.configKeyFor(null), 'shoeErp.sync.config');
+  assert.strictEqual(sync.configKeyFor(''), 'shoeErp.sync.config');
   assert.notStrictEqual(sync.configKeyFor('acct1'), sync.configKeyFor('acct2'));
 });
 
@@ -66,7 +66,7 @@ test('saveConfig/loadConfig：各账号配置互不覆盖', () => {
 test('saveConfig：无账号写旧 key，兼容 V2', () => {
   const store = memStore();
   sync.saveConfig(store, { token: 'legacy' });
-  assert.ok(store._m.has('erp.sync.config'), '写旧 key');
+  assert.ok(store._m.has('shoeErp.sync.config'), '写旧 key');
   const c0 = sync.loadConfig(store);
   assert.strictEqual(c0.token, 'legacy');
   // 账号配置独立于旧 key

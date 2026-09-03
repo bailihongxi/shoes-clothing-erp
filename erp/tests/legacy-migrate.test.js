@@ -29,11 +29,11 @@ test('迁移：旧库有数据 → 迁入账号1 空库（含 settings），旧�
   await legacy.put('sales', { no: 'S20260829-001', total: 88 });
   await legacy.put('meta', { key: 'settings', value: { shopName: '旧鞋店' } });
 
-  const r = await migrate.migrate(createDb, 'shoeErp', 'shoeErp_acct1');
+  const r = await migrate.migrate(createDb, 'shoeErp', 'shoeClothingErp_acct1');
   assert.ok(r.migrated, '应迁移成功');
   assert.strictEqual(r.moved, 3, '移动 2 商品 + 1 销售单');
 
-  const target = await createDb('shoeErp_acct1');
+  const target = await createDb('shoeClothingErp_acct1');
   assert.strictEqual(await target.count('products'), 2);
   const p = await target.get('products', 'X001');
   assert.strictEqual(p.name, '小白鞋');
@@ -49,10 +49,10 @@ test('迁移：target 已有数据则跳过，不覆盖', async () => {
   const { createDb } = makeCreateDb();
   const legacy = await createDb('shoeErp');
   await legacy.put('products', { styleCode: 'X001', name: '小白鞋' });
-  const target = await createDb('shoeErp_acct1');
+  const target = await createDb('shoeClothingErp_acct1');
   await target.put('products', { styleCode: 'Y001', name: '账号1已有' });
 
-  const r = await migrate.migrate(createDb, 'shoeErp', 'shoeErp_acct1');
+  const r = await migrate.migrate(createDb, 'shoeErp', 'shoeClothingErp_acct1');
   assert.strictEqual(r.migrated, false);
   assert.strictEqual(r.reason, 'target-not-empty');
   assert.strictEqual(await target.count('products'), 1, '不覆盖 target 数据');
@@ -60,7 +60,7 @@ test('迁移：target 已有数据则跳过，不覆盖', async () => {
 
 test('迁移：旧库为空 → 不迁移（moved 0）', async () => {
   const { createDb } = makeCreateDb();
-  const r = await migrate.migrate(createDb, 'shoeErp', 'shoeErp_acct1');
+  const r = await migrate.migrate(createDb, 'shoeErp', 'shoeClothingErp_acct1');
   assert.strictEqual(r.migrated, false);
   assert.strictEqual(r.moved, 0);
 });
@@ -76,8 +76,8 @@ test('迁移：账号2 库不受账号1 迁移影响', async () => {
   const { createDb } = makeCreateDb();
   const legacy = await createDb('shoeErp');
   await legacy.put('products', { styleCode: 'X001', name: '小白鞋' });
-  await migrate.migrate(createDb, 'shoeErp', 'shoeErp_acct1');
+  await migrate.migrate(createDb, 'shoeErp', 'shoeClothingErp_acct1');
 
-  const acct2 = await createDb('shoeErp_acct2');
+  const acct2 = await createDb('shoeClothingErp_acct2');
   assert.strictEqual(await acct2.count('products'), 0, '账号2 库为空，不接收迁移数据');
 });

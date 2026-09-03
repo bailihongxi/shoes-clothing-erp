@@ -61,13 +61,13 @@ test('db open：新库创建全部 store', async () => {
 });
 
 test('db open：已存在但缺 store 的残留库 → 自动补齐', async () => {
-  // 模拟：shoeErp_acct2 库已存在（version 1）但没有任何 store（坏库）
-  const fake = makeFakeIndexedDB([{ name: 'shoeErp_acct2', version: 1, stores: [] }]);
-  const d = await db.create({ backend: db.indexedDbBackend(fake), name: 'shoeErp_acct2' });
+  // 模拟：shoeClothingErp_acct2 库已存在（version 1）但没有任何 store（坏库）
+  const fake = makeFakeIndexedDB([{ name: 'shoeClothingErp_acct2', version: 1, stores: [] }]);
+  const d = await db.create({ backend: db.indexedDbBackend(fake), name: 'shoeClothingErp_acct2' });
   ALL_STORES.forEach((s) => {
     assert.ok(d.stores.includes(s), '补齐后 ' + s + ' 应存在');
   });
-  const rec = fake._dbs.get('shoeErp_acct2');
+  const rec = fake._dbs.get('shoeClothingErp_acct2');
   assert.ok(rec.version >= 2, '缺失 store 时版本升级（version=' + rec.version + '）');
   ALL_STORES.forEach((s) => assert.ok(rec.stores.has(s), 'fake 库补齐 ' + s));
 });

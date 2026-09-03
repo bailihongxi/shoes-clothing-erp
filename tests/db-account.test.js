@@ -13,15 +13,16 @@ async function newDb(name) {
   return db.create({ backend: db.memoryBackend(), name: name });
 }
 
-test('schema.dbNameFor：每账号独立库名，无账号用兼容旧库名', () => {
-  assert.strictEqual(schema.dbNameFor('acct1'), 'shoeErp_acct1');
-  assert.strictEqual(schema.dbNameFor('acct2'), 'shoeErp_acct2');
-  assert.strictEqual(schema.dbNameFor('acct3'), 'shoeErp_acct3');
+test('schema.dbNameFor：每账号独立库名（shoeClothingErp_ 前缀，隔离家电项目），无账号用兼容旧库名', () => {
+  assert.strictEqual(schema.dbNameFor('acct1'), 'shoeClothingErp_acct1');
+  assert.strictEqual(schema.dbNameFor('acct2'), 'shoeClothingErp_acct2');
+  assert.strictEqual(schema.dbNameFor('acct3'), 'shoeClothingErp_acct3');
   assert.strictEqual(schema.dbNameFor(''), 'shoeErp', '空账号=旧库名（兼容存量）');
   assert.strictEqual(schema.dbNameFor(null), 'shoeErp');
   assert.strictEqual(schema.dbNameFor(undefined), 'shoeErp');
-  assert.strictEqual(schema.dbNameFor('shoe'), 'shoeErp_shoe');
+  assert.strictEqual(schema.dbNameFor('shoe'), 'shoeClothingErp_shoe');
   assert.ok(schema.dbNameFor('acct1') !== schema.dbNameFor('acct2'), '不同账号库名不同');
+  assert.notStrictEqual(schema.dbNameFor('acct1'), 'shoeErp_acct1', '不再使用家电同名库名');
 });
 
 test('数据隔离：账号1 与账号2 独立库互不可见', async () => {

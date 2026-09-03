@@ -27,7 +27,7 @@
 
   sync.ENVELOPE_VERSION = 1;
   sync.KDF_ITERATIONS = 150000;
-  sync.CONFIG_KEY = 'erp.sync.config';
+  sync.CONFIG_KEY = 'shoeErp.sync.config'; // 命名空间化：与家电等其他复制项目（erp.*）隔离
 
   /* ---------------- 配置（只存本机） ---------------- */
 

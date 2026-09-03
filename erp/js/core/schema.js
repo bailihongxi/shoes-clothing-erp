@@ -17,9 +17,10 @@
     META_SETTINGS_KEY: 'settings',
     META_LAST_BACKUP_KEY: 'lastBackupAt',
 
-    /** V3 多账号：每账号独立数据库名 shoeErp_<acctId>；无账号（兼容旧库）用 shoeErp */
+    /** V3 多账号：每账号独立数据库名 shoeClothingErp_<acctId>（前缀专属，避免与其他复制项目如家电 ERP 的
+     * shoeErp_<id> 库名冲突导致数据串扰）；无账号（兼容 V2 旧库读取/迁移）用 shoeErp */
     dbNameFor: function dbNameFor(acctId) {
-      return acctId ? 'shoeErp_' + acctId : 'shoeErp';
+      return acctId ? 'shoeClothingErp_' + acctId : 'shoeErp';
     },
 
     STORES: {

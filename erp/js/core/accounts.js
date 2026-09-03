@@ -3,9 +3,11 @@
  *
  * 设计：
  *  - 本地账号 + 密码（无服务器、离线可用）；密码只存哈希（util.hashPassword，不存明文）
- *  - 账号列表存 localStorage['erp.accounts']；数据按账号独立（IndexedDB dbName = shoeErp_<acctId>）
+ *  - 账号列表存 localStorage['shoeErp.accounts']；数据按账号独立（IndexedDB dbName = shoeClothingErp_<acctId>）
  *  - 预置 3 个账号（经营范围：鞋 / 服装 / 配饰，初始密码 000000），允许自行创建账号，最多 10 个
  *  - store 抽象：浏览器传 localStorage 之类 {getItem,setItem}，Node 单测传内存 mock
+ *  - 命名空间隔离：key 前缀 shoeErp.、库名前缀 shoeClothingErp_，避免与其他复制项目（如家电 ERP）共用
+ *    localStorage / IndexedDB 导致的账号与数据串扰（同一 origin 下多个 GitHub Pages 项目共享存储）
  */
 (function (root, factory) {
   var isNode = typeof module !== 'undefined' && module.exports;
@@ -17,7 +19,9 @@
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (util) {
   'use strict';
 
-  var ACCOUNTS_KEY = 'erp.accounts';
+  // 命名空间化：与家电等其他复制项目彻底隔离（它们使用 erp.accounts 等通用 key）
+  var ACCOUNTS_KEY = 'shoeErp.accounts';
+  var LEGACY_ACCOUNTS_KEY = 'erp.accounts'; // 被其他项目（家电 ERP）污染的旧 key
   var MAX_ACCOUNTS = 10;
   var DEFAULT_PASSWORD = '000000';
   var ALL_CATEGORIES = ['鞋', '服装', '裤', '配饰', '包袋', '其他'];
@@ -25,6 +29,7 @@
   var api = {};
 
   api.ACCOUNTS_KEY = ACCOUNTS_KEY;
+  api.LEGACY_ACCOUNTS_KEY = LEGACY_ACCOUNTS_KEY;
   api.MAX_ACCOUNTS = MAX_ACCOUNTS;
   api.DEFAULT_PASSWORD = DEFAULT_PASSWORD;
   api.ALL_CATEGORIES = ALL_CATEGORIES;
@@ -47,7 +52,16 @@
     return 'acct' + (Date.now().toString(36));
   };
 
-  /** 读账号列表（不含密码哈希） */
+  /** 清洗经营范围：只保留鞋服配饰分类（ALL_CATEGORIES 内）；全不在则视为未分配 → 全部分类
+   * 用途：剔除其他复制项目（家电 ERP 等）混入的家电分类账号，保证本项目所有账户经营范围均为鞋服配饰 */
+  api.sanitizeScope = function sanitizeScope(scope) {
+    var valid = (scope || []).filter(function (c) {
+      return ALL_CATEGORIES.indexOf(c) >= 0;
+    });
+    return valid.length ? valid : ALL_CATEGORIES.slice();
+  };
+
+  /** 读账号列表（不含密码哈希）；经营范围自动清洗为鞋服配饰分类 */
   api.load = function load(store) {
     if (!store || !store.getItem) return [];
     var raw = null;
@@ -59,9 +73,55 @@
     if (!raw) return [];
     try {
       var list = JSON.parse(raw);
-      return Array.isArray(list) ? list : [];
+      if (!Array.isArray(list)) return [];
+      return list.map(function (a) {
+        if (a && Array.isArray(a.scopeCategories)) {
+          a = Object.assign({}, a, { scopeCategories: api.sanitizeScope(a.scopeCategories) });
+        }
+        return a;
+      });
     } catch (e2) {
       return [];
+    }
+  };
+
+  /**
+   * 清理旧 key（erp.accounts）中被其他项目（家电 ERP）写入的账号残留：
+   *  - 旧 key 含非鞋服分类账号（家电分类）→ 整体删除（剔除家电，鞋服账号由 ensurePreset 在新 key 重建）
+   *  - 旧 key 全部为鞋服分类账号（未污染）→ 迁移到新 key 后删除旧 key（不丢账号资料）
+   */
+  api.cleanupLegacy = function cleanupLegacy(store) {
+    if (!store || !store.getItem || !store.removeItem) return false;
+    var raw = null;
+    try {
+      raw = store.getItem(LEGACY_ACCOUNTS_KEY);
+    } catch (e) {
+      return false;
+    }
+    if (!raw) return false;
+    var list = [];
+    try {
+      var parsed = JSON.parse(raw);
+      list = Array.isArray(parsed) ? parsed : [];
+    } catch (e2) {
+      list = [];
+    }
+    var contaminated = list.some(function (a) {
+      return a && Array.isArray(a.scopeCategories) && a.scopeCategories.some(function (c) {
+        return ALL_CATEGORIES.indexOf(c) < 0;
+      });
+    });
+    try {
+      if (contaminated) {
+        store.removeItem(LEGACY_ACCOUNTS_KEY); // 家电数据：剔除
+      } else if (list.length && store.setItem) {
+        var current = api.load(store);
+        if (!current.length) store.setItem(ACCOUNTS_KEY, JSON.stringify(list)); // 鞋服数据：迁到新 key
+        store.removeItem(LEGACY_ACCOUNTS_KEY);
+      }
+      return true;
+    } catch (e3) {
+      return false;
     }
   };
 
@@ -94,6 +154,7 @@
    * 预置账号初始密码 DEFAULT_PASSWORD，仅在首次创建时生效。
    */
   api.ensurePreset = function ensurePreset(store) {
+    api.cleanupLegacy(store); // 先剔除其他项目（家电）写入旧 key 的残留账号
     var list = api.load(store);
     var changed = false;
     api.PRESET.forEach(function (p) {
