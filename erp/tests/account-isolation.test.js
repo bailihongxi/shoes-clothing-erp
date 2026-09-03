@@ -39,10 +39,12 @@ test('旧 erp.accounts 家电残留：ensurePreset 时被剔除，登录只剩�
       { id: 'admin', username: 'admin', shopName: '管理总控', scopeCategories: ['冰箱', '洗衣机', '空调'], hash: 'h$x.1' },
       { id: 'acct1', username: 'appliance', shopName: '大家电店', scopeCategories: ['冰箱', '电视'], hash: 'h$x.2' },
       { id: 'acct2', username: 'smallapp', shopName: '小家电店', scopeCategories: ['厨房电器'], hash: 'h$x.3' }
-    ])
+    ]),
+    'erp.currentAccount': JSON.stringify({ id: 'admin', username: 'admin', shopName: '管理总控' })
   });
   const list = accounts.ensurePreset(store);
   assert.ok(!store._m.has('erp.accounts'), '家电旧 key 应被删除（剔除家电）');
+  assert.ok(!store._m.has('erp.currentAccount'), '家电登录态残留应被清除');
   assert.ok(store._m.has('shoeErp.accounts'), '新 key 应创建');
   const pubs = accounts.publicList(list);
   assert.strictEqual(pubs.length, 3, '登录列表只剩 3 个鞋服账号');
