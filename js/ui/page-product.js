@@ -231,6 +231,29 @@
         state.page = 1;
       },
 
+      /** 搜索框旁扫码按钮：识别 → 命中款号/条码/色码则在列表中定位；未命中提示建档（V3 扫描增强） */
+      'scan': function (ctx, state) {
+        if (!ERP.scan || !ERP.scan.start) {
+          ui.toast('当前环境不支持扫码，可手动输入条码', 'err');
+          return;
+        }
+        ERP.scan.start({
+          onResult: function (code) {
+            var res = ERP.scan.resolve(ctx, code);
+            state.keyword = String(code || '');
+            state.page = 1;
+            if (res && res.found) {
+              ui.toast('已定位：' + res.product.styleCode + ' ' + res.product.name);
+            } else {
+              ui.toast('未找到该条码对应商品，请先「新款建档」', 'err');
+            }
+          },
+          onError: function (msg) {
+            if (msg) ui.toast(msg, 'err');
+          }
+        });
+      },
+
       page: function (ctx, state, el) {
         state.page = parseInt(el.getAttribute('data-page'), 10) || 1;
       },

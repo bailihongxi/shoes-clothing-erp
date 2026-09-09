@@ -86,6 +86,44 @@ test('filterProducts：兼容旧 state 无新字段（null/undefined 安全）',
   assert.deepStrictEqual(page.filterProducts(ctx, null).map((p) => p.styleCode), ['X001', 'X002', 'X003']);
 });
 
+test('商品档案扫码按钮动作：存在且扫码命中后定位关键词', () => {
+  assert.strictEqual(typeof page.actions['scan'], 'function', '商品档案页应有 scan 动作（搜索框📷按钮）');
+  const ctx = makeCtx(PRODUCTS, SKUS);
+  const state = { keyword: '', page: 1 };
+  const captured = {};
+  const savedScan = global.ERP.scan;
+  global.ERP.scan = {
+    start(opts) { captured.opts = opts; },
+    resolve(ctx, code) {
+      return { found: code === '4006381333931', product: { styleCode: 'X003', name: '帆布腰带' } };
+    }
+  };
+  try {
+    page.actions['scan'](ctx, state);
+    assert.ok(captured.opts && typeof captured.opts.onResult === 'function', '应启动扫码');
+    // 模拟识别到条码 → 命中商品 → keyword 定位
+    captured.opts.onResult('4006381333931');
+    assert.strictEqual(state.keyword, '4006381333931');
+    assert.strictEqual(state.page, 1);
+    // 未命中 → 仍设置 keyword（便于用户看到输入内容）
+    captured.opts.onResult('NO-SUCH-CODE');
+    assert.strictEqual(state.keyword, 'NO-SUCH-CODE');
+  } finally {
+    global.ERP.scan = savedScan;
+  }
+});
+
+test('商品档案扫码动作：无扫码能力时安全提示不抛错', () => {
+  const ctx = makeCtx(PRODUCTS, SKUS);
+  const savedScan = global.ERP.scan;
+  global.ERP.scan = undefined;
+  try {
+    assert.doesNotThrow(() => page.actions['scan'](ctx, {}));
+  } finally {
+    global.ERP.scan = savedScan;
+  }
+});
+
 test('categoriesFor：scopeCategories 为空返回全部分类', () => {
   const all = schema.categoriesFor({});
   assert.ok(all.length >= 6 && all.indexOf('鞋') >= 0 && all.indexOf('配饰') >= 0, '返回全部分类');
