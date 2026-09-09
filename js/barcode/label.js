@@ -46,15 +46,19 @@
     return skus.map(function (s) { return buildLabelData(s, opts); });
   }
 
-  /** 单张标签 HTML（用于打印页与预览） */
+  /** 单张标签 HTML（用于打印页与预览）
+   *  V1.3-7 版式（自上而下）：产品名称 → [颜色/号码 ｜ 价格]（同一行左右分布）→ 条码 → 条码下方数字（款号）。
+   *  已取消店名行；颜色号码与价格同一行、左（颜色号码）右（价格）分布，中间留大间隔。
+   */
   function labelHTML(d, opts) {
     opts = opts || {};
     var cls = opts.cls || 'label';
     return '<div class="' + cls + '" style="width:' + d.widthMm + 'mm;height:' + d.heightMm + 'mm">' +
-      '<div class="lb-shop">' + esc(d.shop) + '</div>' +
       '<div class="lb-name">' + esc(d.name) + '</div>' +
+      '<div class="lb-row">' +
       '<div class="lb-cs">' + esc(d.color) + ' / ' + esc(d.size) + '</div>' +
       '<div class="lb-price">' + esc(d.priceText) + '</div>' +
+      '</div>' +
       '<div class="lb-barcode" data-barcode="' + esc(d.barcode) + '"></div>' +
       '<div class="lb-code">' + esc(d.styleCode) + '</div>' +
       '</div>';
