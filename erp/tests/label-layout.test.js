@@ -57,3 +57,11 @@ test('printPage 整页结构：不含店名、含左右分布行', () => {
   const count = page.split('class="lb-row"').length - 1;
   assert.strictEqual(count, 2, '两张标签各含一行左右分布');
 });
+
+test('V1.3-8：颜色/号码 与 价格 文字加粗放大更醒目', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'print.css'), 'utf8');
+  assert.ok(css.includes('.lb-cs   { font-size: 10.5pt; font-weight: 700;'), '颜色/号码应加粗放大（10.5pt 700）');
+  assert.ok(css.includes('.lb-price{ font-size: 13pt; font-weight: 800;'), '价格应更粗更大（13pt 800）');
+});
