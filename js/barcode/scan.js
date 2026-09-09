@@ -160,7 +160,7 @@
     return !!(window.ERP && window.ERP.ean13 && typeof window.ERP.ean13.decode === 'function');
   }
   function hasZxing() {
-    return !!(window.ZXing && (typeof window.ZXing.decodeCanvas === 'function' || window.ZXing.HTMLCanvasElementLuminanceSource));
+    return !!(window.ZXing && typeof window.ZXing.decodeCanvas === 'function');
   }
 
   /** 原图 → 原始尺寸 canvas（自研 EAN-13 用原图精度，不缩放） */
@@ -258,43 +258,14 @@
     } catch (e) { cb(false); }
   }
 
-  /** ZXing 纯 JS 通道：官方 @zxing/library API（HTMLCanvasElementLuminanceSource → HybridBinarizer → MultiFormatReader）。
-   * 兼容形态：window.ZXing.decodeCanvas 直接函数优先（若存在自定义封装）。
-   * 说明：v0.21.x 官方库 BrowserCodeReader 无 decodeFromCanvas，故不用该分支。 */
+  /** ZXing 纯 JS 通道：window.ZXing.decodeCanvas（zxing-bridge 挂载，Hybrid/Global 双二值化+反色重试） */
   function zxingDecode(source, cb) {
     try {
       var canvas = toDecodeCanvas(source);
       if (!canvas) { cb(false); return; }
-      if (window.ZXing.decodeCanvas) {
-        var r = window.ZXing.decodeCanvas(canvas);
-        if (r) cb(true, r);
-        else cb(false);
-        return;
-      }
-      if (window.ZXing.HTMLCanvasElementLuminanceSource) {
-        var lum = new window.ZXing.HTMLCanvasElementLuminanceSource(canvas);
-        var bitmap = new window.ZXing.BinaryBitmap(new window.ZXing.HybridBinarizer(lum));
-        var reader = new window.ZXing.MultiFormatReader();
-        var hints = {};
-        if (window.ZXing.DecodeHintType && window.ZXing.BarcodeFormat) {
-          // 收窄格式 + TRY_HARDER：拍照模糊/倾斜条码识别率显著提升
-          hints[window.ZXing.DecodeHintType.POSSIBLE_FORMATS] = [
-            window.ZXing.BarcodeFormat.EAN_13, window.ZXing.BarcodeFormat.UPC_A,
-            window.ZXing.BarcodeFormat.EAN_8, window.ZXing.BarcodeFormat.UPC_E,
-            window.ZXing.BarcodeFormat.CODE_128, window.ZXing.BarcodeFormat.CODE_39,
-            window.ZXing.BarcodeFormat.CODE_93, window.ZXing.BarcodeFormat.ITF
-          ];
-          hints[window.ZXing.DecodeHintType.TRY_HARDER] = true;
-        }
-        var res = reader.decode(bitmap, hints);
-        if (res) {
-          var text = res.getText ? res.getText() : (res.text || null);
-          if (text) { cb(true, text); return; }
-        }
-        cb(false);
-        return;
-      }
-      cb(false);
+      var r = window.ZXing.decodeCanvas(canvas);
+      if (r) cb(true, r);
+      else cb(false);
     } catch (e) { cb(false); }
   }
 
