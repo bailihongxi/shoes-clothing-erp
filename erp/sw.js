@@ -4,7 +4,7 @@
  * 更新策略（V3 同步增强）：导航与静态资源全部 network-first——在线一律拿最新（避免 SW 缓存
  * 让用户长期停留在旧版、或跨项目 key 串扰后无法及时修复），离线回退缓存外壳。
  */
-var CACHE = 'shoe-erp-v9';
+var CACHE = 'shoe-erp-v10';
 var SHELL = [
   './',
   './index.html',
@@ -48,6 +48,8 @@ var SHELL = [
   './js/barcode/label.js',
   './js/barcode/scan.js',
   './js/barcode/print-bt.js',
+  './vendor/zxing.min.js',
+  './vendor/xlsx.full.min.js',
   './js/app.js'
 ];
 
