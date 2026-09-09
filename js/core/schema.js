@@ -10,6 +10,8 @@
   'use strict';
 
   var S = {
+    /** 应用版本（V1.3 起：每次文件更新/功能优化在 V1.3- 后递增数字，如 V1.3-1、V1.3-2…） */
+    APP_VERSION: 'V1.3-1',
     /** 当前数据结构版本 */
     VERSION: 1,
     DB_NAME: 'shoeErp',
