@@ -90,6 +90,62 @@ test('scan-form-barcode 动作：扫码结果写入 form.barcode', () => {
   }
 });
 
+test('scan-form-barcode 动作：扫码结果后触发 UI 重渲染（条码自动填入输入框，V1.3-5 修复）', () => {
+  const page = require('../js/ui/page-product.js');
+  const ctx = newCtx();
+  const state = page.init(ctx);
+  state.tab = 'new';
+  const captured = {};
+  const savedScan = global.ERP.scan;
+  const savedApp = global.ERP.app;
+  let renderCalls = 0;
+  const savedWindow = global.window;
+  // window.ERP 与闭包 ERP 必须同一引用（page-product.js 闭包 var ERP = root.ERP）
+  global.window = { ERP: global.ERP };
+  global.ERP.app = { render() { renderCalls++; } };
+  global.ERP.scan = { start(opts) { captured.opts = opts; } };
+  try {
+    page.actions['scan-form-barcode'](ctx, state);
+    captured.opts.onResult('6921734900022');
+    assert.strictEqual(renderCalls, 1, '扫码结果后必须调用 ERP.app.render() 刷新表单');
+    // 重渲染后输入框应显示条码
+    const html = page.render(ctx, state);
+    assert.ok(html.includes('value="6921734900022"'), '重渲染后条码输入框应显示扫码结果');
+  } finally {
+    global.ERP.scan = savedScan;
+    global.ERP.app = savedApp;
+    global.window = savedWindow;
+  }
+});
+
+test('商品搜索框扫码动作：扫码结果写入 keyword 并触发重渲染（V1.3-5 修复）', () => {
+  const page = require('../js/ui/page-product.js');
+  const ctx = newCtx();
+  const state = page.init(ctx);
+  const captured = {};
+  const savedScan = global.ERP.scan;
+  const savedApp = global.ERP.app;
+  let renderCalls = 0;
+  const savedWindow = global.window;
+  global.window = { ERP: global.ERP };
+  global.ERP.app = { render() { renderCalls++; } };
+  global.ERP.scan = {
+    start(opts) { captured.opts = opts; },
+    resolve() { return null; }
+  };
+  try {
+    page.actions['scan'](ctx, state);
+    assert.ok(captured.opts && typeof captured.opts.onResult === 'function', '应启动扫码');
+    captured.opts.onResult('6921734900022');
+    assert.strictEqual(state.keyword, '6921734900022');
+    assert.strictEqual(renderCalls, 1, '扫码结果后必须调用 ERP.app.render() 刷新搜索框与列表');
+  } finally {
+    global.ERP.scan = savedScan;
+    global.ERP.app = savedApp;
+    global.window = savedWindow;
+  }
+});
+
 test('编辑模式：条码输入框禁用（只读）且无扫码按钮', () => {
   const page = require('../js/ui/page-product.js');
   const ctx = newCtx();
