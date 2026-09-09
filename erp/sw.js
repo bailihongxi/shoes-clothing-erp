@@ -43,6 +43,7 @@ var SHELL = [
   './js/ui/page-supplier.js',
   './js/ui/page-login.js',
   './js/barcode/render.js',
+  './js/barcode/ean13.js',
   './js/barcode/label.js',
   './js/barcode/scan.js',
   './js/barcode/print-bt.js',

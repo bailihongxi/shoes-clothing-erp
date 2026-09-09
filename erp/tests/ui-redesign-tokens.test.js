@@ -124,10 +124,12 @@ test('desktop.css 已适配 v2：薄荷绿侧栏 + top-bar + 3 列开单布局',
   assert.ok(css.includes('.mobile-only'), 'desktop.css 应隐藏 mobile-only');
 });
 
-test('sw.js CACHE 已升级到 v7（V3 多账号后重新预缓存，修复手机登录空白页）', () => {
+test('sw.js CACHE 已升级到 v8（命名空间隔离后重新预缓存；本次扫描增强后 SHELL 含 ean13.js）', () => {
   const sw = readFile('sw.js');
-  assert.ok(sw.includes("CACHE = 'shoe-erp-v7'"), 'sw.js CACHE 应为 shoe-erp-v7');
+  assert.ok(sw.includes("CACHE = 'shoe-erp-v8'"), 'sw.js CACHE 应为 shoe-erp-v8');
+  assert.ok(!sw.includes("CACHE = 'shoe-erp-v7'"), 'CACHE 不再是 v7');
   assert.ok(!sw.includes("CACHE = 'shoe-erp-v6'"), 'CACHE 不再是 v6（旧 PWA 不会重新预缓存）');
+  assert.ok(sw.includes('./js/barcode/ean13.js'), 'SHELL 应包含 ean13.js（自研解码器）');
   // SHELL 列表必须包含全部 CSS 文件 + V3 新增文件
   assert.ok(sw.includes('./css/base.css'), 'SHELL 应包含 css/base.css');
   assert.ok(sw.includes('./css/mobile.css'), 'SHELL 应包含 css/mobile.css');
