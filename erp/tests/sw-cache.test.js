@@ -41,13 +41,14 @@ test('sw.js SHELL 包含所有已有页面和核心模块（无遗漏）', () =>
   });
 });
 
-test('sw.js 导航请求使用 stale-while-revalidate（后台更新缓存）', () => {
-  // 导航请求块内应包含后台 fetch 更新缓存的逻辑，而非纯 cache-first
+test('sw.js 导航请求使用 network-first（在线拿最新，离线回退缓存）', () => {
+  // 导航请求块：先 fetch 网络，失败才回退缓存（避免长期停留在旧版）
   const navBlock = sw.slice(sw.indexOf("req.mode === 'navigate'"));
-  assert.ok(navBlock.includes('fetch(req)'), '导航请求应后台 fetch 更新');
+  assert.ok(navBlock.includes('fetch(req)'), '导航请求应优先 fetch 网络');
   assert.ok(navBlock.includes('caches.open(CACHE)'), '导航请求应将新响应写入缓存');
-  assert.ok(navBlock.includes('cached || net') || navBlock.includes('cached||net'),
-    '导航请求应先返回缓存再后台更新（stale-while-revalidate）');
+  assert.ok(navBlock.indexOf('fetch(req)') < navBlock.indexOf('caches.match'), 'fetch 应先于缓存匹配（network-first）');
+  assert.ok(navBlock.includes("return cached || caches.match('./')") || navBlock.includes("cached || caches.match('./')"),
+    '离线时应回退缓存外壳');
 });
 
 test('sw.js activate 事件清除旧版本缓存', () => {

@@ -124,12 +124,15 @@ test('desktop.css 已适配 v2：薄荷绿侧栏 + top-bar + 3 列开单布局',
   assert.ok(css.includes('.mobile-only'), 'desktop.css 应隐藏 mobile-only');
 });
 
-test('sw.js CACHE 已升级到 v8（命名空间隔离后重新预缓存；本次扫描增强后 SHELL 含 ean13.js）', () => {
+test('sw.js CACHE 已升级到 v9 且 network-first（同步增强：在线一律拿最新，离线回退缓存）', () => {
   const sw = readFile('sw.js');
-  assert.ok(sw.includes("CACHE = 'shoe-erp-v8'"), 'sw.js CACHE 应为 shoe-erp-v8');
-  assert.ok(!sw.includes("CACHE = 'shoe-erp-v7'"), 'CACHE 不再是 v7');
+  assert.ok(sw.includes("CACHE = 'shoe-erp-v9'"), 'sw.js CACHE 应为 shoe-erp-v9');
+  assert.ok(!sw.includes("CACHE = 'shoe-erp-v8'"), 'CACHE 不再是 v8');
   assert.ok(!sw.includes("CACHE = 'shoe-erp-v6'"), 'CACHE 不再是 v6（旧 PWA 不会重新预缓存）');
   assert.ok(sw.includes('./js/barcode/ean13.js'), 'SHELL 应包含 ean13.js（自研解码器）');
+  assert.ok(sw.includes('// 导航请求：network-first'), '导航请求应走 network-first');
+  assert.ok(sw.includes('// 静态资源（js/css/图片等）：network-first'), '静态资源应走 network-first');
+  assert.ok(!sw.includes('cache-first，命中后顺带用网络更新'), '不再使用旧 cache-first 策略');
   // SHELL 列表必须包含全部 CSS 文件 + V3 新增文件
   assert.ok(sw.includes('./css/base.css'), 'SHELL 应包含 css/base.css');
   assert.ok(sw.includes('./css/mobile.css'), 'SHELL 应包含 css/mobile.css');
