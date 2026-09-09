@@ -34,7 +34,10 @@
 
   function buildHints(Z) {
     if (!FORMATS && Z.DecodeHintType && Z.BarcodeFormat) {
-      // 一维商品条码（EAN/UPC/Code128/39/93/ITF）；QR 由 native BarcodeDetector 通道负责
+      // 一维码全集（V1.3-6）：店内自生成条码不局限国标——Code128/Code39/Code93 支持任意位数
+      // （字母数字混排亦可）、ITF 不限位数；12 位纯数字（UPC-A 形态）由 scan.normalizeCode 统一补 0 为 13 位。
+      // 注意：ZXing JS 移植版无 CodabarReader（Java 版才有），Codabar 条码交给 native BarcodeDetector 通道
+      //（Chrome/Safari 均支持 codabar 格式），故此处不加 CODABAR。
       FORMATS = [
         Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.UPC_A,
         Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_E,
@@ -296,6 +299,7 @@
     decodeCanvas: decodeCanvas,
     install: install,
     // 测试/诊断用内部件
+    buildHints: buildHints,
     locateBand: locateBand,
     enhanceGray: enhanceGray,
     canvasGray: canvasGray,

@@ -101,6 +101,24 @@
         state.form.keyword = el.value;
       },
 
+      /** V1.3-6：进货单选款搜索框旁扫码 → 结果自动填入搜索框并触发搜索（有结果显示下方列表/无结果提示） */
+      'scan-form-keyword': function (ctx, state) {
+        if (!ERP.scan || !ERP.scan.start) {
+          ui.toast('当前环境不支持扫码，可手动输入条码', 'err');
+          return;
+        }
+        ERP.scan.start({
+          onResult: function (code) {
+            state.form.keyword = String(code || '').trim();
+            // 扫码后重渲染：搜索框显示条码，下方列表按条码自动刷新（有结果显示/无结果提示）
+            if (typeof window !== 'undefined' && window.ERP && ERP.app && ERP.app.render) ERP.app.render();
+          },
+          onError: function (msg) {
+            if (msg) ui.toast(msg, 'err');
+          }
+        });
+      },
+
       'pick-style': function (ctx, state, el) {
         state.form.styleCode = el.getAttribute('data-code');
       },
@@ -452,7 +470,10 @@
     /* 选款 → 矩阵批量填数 */
     h += '<div class="card"><div class="card-title">按色码批量填数' +
       '<span class="more">点格子数量 +1</span></div>' +
-      '<div class="row mb8"><input class="input" data-input="form-keyword" data-name="keyword" data-live="1" placeholder="搜索款号 / 名称 / 条码" value="' + esc(form.keyword) + '"></div>';
+      '<div class="row mb8" style="align-items:center;gap:6px;flex-wrap:wrap">' +
+      '<input class="input" style="flex:1;min-width:160px" data-input="form-keyword" data-name="keyword" data-live="1" placeholder="搜索款号 / 名称 / 条码" value="' + esc(form.keyword) + '">' +
+      '<button class="btn" data-act="scan-form-keyword" title="扫码搜索款号">📷 扫码</button>' +
+      '</div>';
 
     var kw = String(form.keyword || '').toUpperCase();
     var styles = ctx.data.products.filter(function (p) {
@@ -465,7 +486,7 @@
     }).slice(0, 20);
 
     if (!styles.length) {
-      h += ui.empty('没有找到商品，先在「商品档案」建档');
+      h += ui.empty('未查到此款信息');
     } else {
       h += '<div class="chips mb8">';
       styles.forEach(function (p) {

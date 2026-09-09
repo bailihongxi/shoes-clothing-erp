@@ -255,3 +255,23 @@ test('decodeCanvas：竖排条码（横条码旋转 90°）经旋转重试解出
     global.document = savedDoc;
   }
 });
+
+test('V1.3-6：解码格式覆盖店内自生成条码（任意位数）——Code128/Code39/93/ITF 一维码全集', () => {
+  const Z = require(path.join(__dirname, '..', 'vendor', 'zxing.min.js'));
+  const bridge = require('../js/barcode/zxing-bridge.js');
+  const hints = bridge.buildHints(Z);
+  const list = hints.get(Z.DecodeHintType.POSSIBLE_FORMATS);
+  assert.ok(list, 'buildHints 应返回 POSSIBLE_FORMATS');
+  assert.ok(list.indexOf(Z.BarcodeFormat.CODE_128) >= 0, '应含 CODE_128（任意位数/字母数字）');
+  assert.ok(list.indexOf(Z.BarcodeFormat.CODE_39) >= 0, '应含 CODE_39（任意位数）');
+  assert.ok(list.indexOf(Z.BarcodeFormat.CODE_93) >= 0, '应含 CODE_93');
+  assert.ok(list.indexOf(Z.BarcodeFormat.ITF) >= 0, '应含 ITF（任意位数）');
+  // ZXing JS 移植版无 CodabarReader（Java 版才有）——Codabar 依赖 native BarcodeDetector 通道
+  assert.ok(list.indexOf(Z.BarcodeFormat.CODABAR) < 0, 'JS 版 ZXing 无 Codabar 解码器，不加 CODABAR');
+  assert.strictEqual(typeof Z.CodabarReader, 'undefined', 'JS 版 ZXing 确无 CodabarReader');
+  // 自生成条码不受国标长度限制：normalizeCode 只规范化 12 位纯数字（UPC-A→EAN-13），其余原样返回
+  const scan = require('../js/barcode/scan.js');
+  assert.strictEqual(scan.normalizeCode('A41611403 01%'), 'A41611403 01%', '非 12 位数字原样保留');
+  assert.strictEqual(scan.normalizeCode('SN20240815-001-AB'), 'SN20240815-001-AB', '自生成长条码原样保留');
+  assert.strictEqual(scan.normalizeCode('123456789012'), '0123456789012', '12 位纯数字补 0 规范化');
+});

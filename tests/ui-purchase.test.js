@@ -177,3 +177,70 @@ test('作废：库存与欠款回滚，列表标记已作废', () => {
   assert.ok(html.includes('已作废'));
   assert.ok(!html.includes('data-act="void-purchase"'), '已作废单据不再显示作废按钮');
 });
+
+/* ---------------- V1.3-6：选款搜索框扫码 ----------------
+ * 需求：新建进货单的「搜索款号/名称/条码」搜索框后加扫码按键，扫码结果自动填入搜索框
+ * 并触发搜索；有结果显示下方信息列表，无结果显示「未查到此款信息」。
+ */
+test('V1.3-6：表单选款区含扫码按键（data-act="scan-form-keyword"）', () => {
+  const { ctx, state } = fresh();
+  page.actions['open-new'](ctx, state);
+  const html = page.render(ctx, state);
+  assert.ok(html.includes('data-act="scan-form-keyword"'), '搜索框后应有扫码按键');
+  assert.ok(html.includes('data-input="form-keyword"'), '搜索输入框仍存在');
+});
+
+test('V1.3-6：扫码结果自动填入搜索框并触发重渲染（有结果显示列表）', () => {
+  // 闭包 ERP 与 globalThis.ERP 同引用：改 global.ERP 的属性即可被 page 模块看到（勿替换对象引用）
+  const savedScan = global.ERP.scan;
+  const savedApp = global.ERP.app;
+  const savedWindow = global.window;
+  let startCfg = null;
+  let renderCount = 0;
+  global.ERP.scan = { start(cfg) { startCfg = cfg; } };
+  global.ERP.app = { render() { renderCount++; } };
+  // page-purchase 闭包 ERP 与 globalThis.ERP 同引用；render 防御需 window.ERP 同引用才命中（同 page-product 测试）
+  global.window = { ERP: global.ERP };
+  try {
+    const ctx = seed(newCtx());
+    const state = page.init(ctx);
+    page.actions['open-new'](ctx, state);
+    page.actions['scan-form-keyword'](ctx, state);
+    assert.ok(startCfg, '扫码应触发 ERP.scan.start');
+    startCfg.onResult('X001');
+    assert.strictEqual(state.form.keyword, 'X001', '扫码结果应写入搜索框关键字');
+    assert.strictEqual(renderCount, 1, '扫码后应重渲染触发搜索');
+    const html = page.render(ctx, state);
+    assert.ok(html.includes('小白鞋'), '命中商品应显示在下方信息列表');
+  } finally {
+    global.ERP.scan = savedScan;
+    global.ERP.app = savedApp;
+    global.window = savedWindow;
+  }
+});
+
+test('V1.3-6：扫码无结果时显示「未查到此款信息」', () => {
+  const savedScan = global.ERP.scan;
+  const savedApp = global.ERP.app;
+  const savedWindow = global.window;
+  let startCfg = null;
+  global.ERP.scan = { start(cfg) { startCfg = cfg; } };
+  global.ERP.app = { render() {} };
+  global.window = { ERP: global.ERP };
+  try {
+    const ctx = seed(newCtx());
+    const state = page.init(ctx);
+    page.actions['open-new'](ctx, state);
+    page.actions['scan-form-keyword'](ctx, state);
+    assert.ok(startCfg, '扫码应触发 ERP.scan.start');
+    startCfg.onResult('NO-SUCH-CODE-999');
+    assert.strictEqual(state.form.keyword, 'NO-SUCH-CODE-999');
+    const html = page.render(ctx, state);
+    assert.ok(html.includes('未查到此款信息'), '无结果应提示「未查到此款信息」');
+    assert.ok(!html.includes('小白鞋'), '不应显示无关商品');
+  } finally {
+    global.ERP.scan = savedScan;
+    global.ERP.app = savedApp;
+    global.window = savedWindow;
+  }
+});

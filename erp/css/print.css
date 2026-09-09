@@ -33,10 +33,24 @@ html, body {
 
 .label:last-child { page-break-after: auto; }
 
-.lb-shop { font-size: 9pt; font-weight: 700; line-height: 1.1; }
-.lb-name { font-size: 10pt; font-weight: 700; line-height: 1.1; margin-top: 1mm; }
-.lb-cs   { font-size: 9pt; line-height: 1.1; margin-top: 1mm; }
-.lb-price{ font-size: 10pt; font-weight: 700; line-height: 1.1; margin-top: 1mm; }
-.lb-barcode { margin-top: 1.5mm; flex: 1 1 auto; min-height: 8mm; }
-.lb-barcode svg { display: block; width: 100%; height: 10mm; }
-.lb-code { font-size: 8pt; letter-spacing: .5px; text-align: center; }
+/* V1.3-7：取消店名行；产品名称占一行 */
+.lb-name { font-size: 10pt; font-weight: 700; line-height: 1.1; }
+
+/* V1.3-7：颜色号码（整体靠左）与价格（整体靠右）同一行，左右分布、中间大间隔
+   V1.3-8：颜色/号码与价格文字加粗放大，更醒目
+   V1.3-9：颜色/号码再加大（12pt），价格保持 13pt 不变 */
+.lb-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6mm;
+  margin-top: 1.2mm;
+}
+.lb-cs   { font-size: 12pt; font-weight: 700; line-height: 1.1; white-space: nowrap; }
+.lb-price{ font-size: 13pt; font-weight: 800; line-height: 1.1; white-space: nowrap; }
+
+/* V1.3-7：条码更高更清晰
+   V1.3-9：条码下部款号文字缩小，并与条码拉开一点间距（分隔开） */
+.lb-barcode { margin-top: 1.5mm; flex: 1 1 auto; min-height: 10mm; }
+.lb-barcode svg { display: block; width: 100%; height: 12mm; }
+.lb-code { font-size: 7.5pt; letter-spacing: .5px; text-align: center; margin-top: 0.8mm; }

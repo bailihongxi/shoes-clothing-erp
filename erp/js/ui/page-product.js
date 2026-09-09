@@ -86,7 +86,8 @@
       });
       var html = label.printPage(labels);
       html = html.replace(/<div class="lb-barcode" data-barcode="([^"]*)"><\/div>/g, function (m, bc) {
-        return '<div class="lb-barcode">' + render.svg(bc, { dpi: 203, heightMm: 10 }) + '</div>';
+        // V1.3-7：条码更高更清晰（10mm → 12mm，与 print.css .lb-barcode svg 高度一致）
+        return '<div class="lb-barcode">' + render.svg(bc, { dpi: 203, heightMm: 12 }) + '</div>';
       });
       if (typeof window === 'undefined' || !window.open) {
         ui.toast('当前环境无法打印', 'err'); return;

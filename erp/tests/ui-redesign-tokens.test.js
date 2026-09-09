@@ -126,7 +126,7 @@ test('desktop.css 已适配 v2：薄荷绿侧栏 + top-bar + 3 列开单布局',
 
 test('sw.js CACHE 已升级到 v12 且 network-first（同步增强：在线一律拿最新，离线回退缓存）', () => {
   const sw = readFile('sw.js');
-  assert.ok(sw.includes("CACHE = 'shoe-erp-v12'"), 'sw.js CACHE 应为 shoe-erp-v12');
+  assert.ok(sw.includes("CACHE = 'shoe-erp-v16'"), 'sw.js CACHE 应为 shoe-erp-v16');
   assert.ok(!sw.includes("CACHE = 'shoe-erp-v11'"), 'CACHE 不再是 v11');
   assert.ok(!sw.includes("CACHE = 'shoe-erp-v10'"), 'CACHE 不再是 v10');
   assert.ok(!sw.includes("CACHE = 'shoe-erp-v9'"), 'CACHE 不再是 v9');
