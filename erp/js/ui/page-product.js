@@ -105,6 +105,7 @@
       return {
         tab: 'list',
         keyword: '',
+        filterCategory: 'all',
         filterBarcode: 'all',
         filterPrinted: 'all',
         filterStatus: 'all',
@@ -228,6 +229,29 @@
       keyword: function (ctx, state, el) {
         state.keyword = el.value;
         state.page = 1;
+      },
+
+      /** 搜索框旁扫码按钮：识别 → 命中款号/条码/色码则在列表中定位；未命中提示建档（V3 扫描增强） */
+      'scan': function (ctx, state) {
+        if (!ERP.scan || !ERP.scan.start) {
+          ui.toast('当前环境不支持扫码，可手动输入条码', 'err');
+          return;
+        }
+        ERP.scan.start({
+          onResult: function (code) {
+            var res = ERP.scan.resolve(ctx, code);
+            state.keyword = String(code || '');
+            state.page = 1;
+            if (res && res.found) {
+              ui.toast('已定位：' + res.product.styleCode + ' ' + res.product.name);
+            } else {
+              ui.toast('未找到该条码对应商品，请先「新款建档」', 'err');
+            }
+          },
+          onError: function (msg) {
+            if (msg) ui.toast(msg, 'err');
+          }
+        });
       },
 
       page: function (ctx, state, el) {
@@ -385,12 +409,18 @@
 
   /* ---------------- 列表 ---------------- */
 
-  function renderList(ctx, state) {
+  /**
+   * 商品列表过滤（纯函数，可测；搜索增强：款号/名称/条码/色码 id/分类名 多字段 + 分类下拉）
+   * @param ctx { data:{products,skus}, settings, skusOf(styleCode) }
+   * @param state { keyword, filterCategory, filterBarcode, filterPrinted, filterStatus }
+   * @returns 按 styleCode 排序、经营范围过滤后的商品数组
+   */
+  page.filterProducts = function filterProducts(ctx, state) {
     // V3 经营范围：商品列表只显示本账号分类商品
     var list = ctx.data.products.filter(function (p) {
       return schema.inScope(ctx.settings, p.category);
     });
-    var kw = String(state.keyword || '').trim().toUpperCase();
+    var kw = String((state && state.keyword) || '').trim().toUpperCase();
     if (kw) {
       list = list.filter(function (p) {
         var inSku = ctx.skusOf(p.styleCode).some(function (s) {
@@ -400,36 +430,46 @@
           String(p.styleCode).toUpperCase().indexOf(kw) >= 0 ||
           String(p.name).toUpperCase().indexOf(kw) >= 0 ||
           String(p.barcode || '').toUpperCase().indexOf(kw) >= 0 ||
+          String(p.category || '').toUpperCase().indexOf(kw) >= 0 ||
           inSku
         );
       });
     }
-    if (state.filterBarcode === 'has') {
+    if (state && state.filterCategory && state.filterCategory !== 'all') {
+      list = list.filter(function (p) {
+        return (p.category || '') === state.filterCategory;
+      });
+    }
+    if (state && state.filterBarcode === 'has') {
       list = list.filter(function (p) {
         return !!p.barcode;
       });
-    } else if (state.filterBarcode === 'none') {
+    } else if (state && state.filterBarcode === 'none') {
       list = list.filter(function (p) {
         return !p.barcode;
       });
     }
-    if (state.filterPrinted === 'printed') {
+    if (state && state.filterPrinted === 'printed') {
       list = list.filter(function (p) {
         return !!p.printedAt;
       });
-    } else if (state.filterPrinted === 'unprinted') {
+    } else if (state && state.filterPrinted === 'unprinted') {
       list = list.filter(function (p) {
         return !p.printedAt;
       });
     }
-    if (state.filterStatus !== 'all') {
+    if (state && state.filterStatus && state.filterStatus !== 'all') {
       list = list.filter(function (p) {
         return (p.status || schema.STATUS.ON) === state.filterStatus;
       });
     }
-    list = util.sortBy(list, function (p) {
+    return util.sortBy(list, function (p) {
       return p.styleCode;
     });
+  };
+
+  function renderList(ctx, state) {
+    var list = page.filterProducts(ctx, state);
 
     var pg = util.paginate(list, state.page, 300);
     state.page = pg.page;
@@ -442,8 +482,16 @@
       '<button class="btn btn-primary" data-act="open-new">＋ 新款建档</button>' +
       '</div></div>';
 
-    h += '<div class="card">' + ui.searchBar({ value: state.keyword, placeholder: '搜索款号 / 名称 / 条码 / SKU id' });
+    h += '<div class="card">' + ui.searchBar({ value: state.keyword, placeholder: '搜索款号 / 名称 / 条码 / 色码 / 分类' });
     h += '<div class="row wrap">' +
+      ui.select({
+        name: 'filterCategory',
+        value: state.filterCategory,
+        on: 'filter',
+        options: [{ value: 'all', text: '全部分类' }].concat(schema.categoriesFor(ctx.settings).map(function (c) {
+          return { value: c, text: c };
+        }))
+      }) +
       ui.select({
         name: 'filterBarcode',
         value: state.filterBarcode,
