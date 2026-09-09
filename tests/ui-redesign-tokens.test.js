@@ -124,9 +124,10 @@ test('desktop.css 已适配 v2：薄荷绿侧栏 + top-bar + 3 列开单布局',
   assert.ok(css.includes('.mobile-only'), 'desktop.css 应隐藏 mobile-only');
 });
 
-test('sw.js CACHE 已升级到 v10 且 network-first（同步增强：在线一律拿最新，离线回退缓存）', () => {
+test('sw.js CACHE 已升级到 v11 且 network-first（同步增强：在线一律拿最新，离线回退缓存）', () => {
   const sw = readFile('sw.js');
-  assert.ok(sw.includes("CACHE = 'shoe-erp-v10'"), 'sw.js CACHE 应为 shoe-erp-v10');
+  assert.ok(sw.includes("CACHE = 'shoe-erp-v11'"), 'sw.js CACHE 应为 shoe-erp-v11');
+  assert.ok(!sw.includes("CACHE = 'shoe-erp-v10'"), 'CACHE 不再是 v10');
   assert.ok(!sw.includes("CACHE = 'shoe-erp-v9'"), 'CACHE 不再是 v9');
   assert.ok(!sw.includes("CACHE = 'shoe-erp-v6'"), 'CACHE 不再是 v6（旧 PWA 不会重新预缓存）');
   assert.ok(sw.includes('./js/barcode/ean13.js'), 'SHELL 应包含 ean13.js（自研解码器）');

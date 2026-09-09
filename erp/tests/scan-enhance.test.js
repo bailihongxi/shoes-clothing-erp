@@ -12,8 +12,8 @@ test('chooseMode：有 BarcodeDetector 且安全上下文才实时，否则手�
   assert.strictEqual(scan.chooseMode({}, undefined), 'realtime');
 });
 
-test('pickDecoders：按 native → ean13 → zxing 只列可用通道', () => {
-  assert.deepStrictEqual(scan.pickDecoders({ native: true, ean13: true, zxing: true }), ['native', 'ean13', 'zxing']);
+test('pickDecoders：按 native → zxing → ean13 只列可用通道（V1.3-4 顺序调整）', () => {
+  assert.deepStrictEqual(scan.pickDecoders({ native: true, ean13: true, zxing: true }), ['native', 'zxing', 'ean13']);
   assert.deepStrictEqual(scan.pickDecoders({ native: false, ean13: true, zxing: false }), ['ean13']);
   assert.deepStrictEqual(scan.pickDecoders({ native: true, ean13: false, zxing: false }), ['native']);
   assert.deepStrictEqual(scan.pickDecoders({}), []);
@@ -54,7 +54,7 @@ test('frameDue：距上次抓帧 ≥500ms 才抓新帧', () => {
   assert.strictEqual(scan.frameDue(0, 500, 500), true);
 });
 
-test('decodeWith：按通道顺序依次尝试，首个成功即返回', () => {
+test('decodeWith：按通道顺序依次尝试，首个成功即返回（native → zxing → ean13）', () => {
   return new Promise((resolve, reject) => {
     const calls = [];
     const impl = {
@@ -65,8 +65,8 @@ test('decodeWith：按通道顺序依次尝试，首个成功即返回', () => {
     scan.decodeWith({ tagName: 'IMG' }, (ok, text) => {
       try {
         assert.strictEqual(ok, true);
-        assert.strictEqual(text, '6901234567892');
-        assert.deepStrictEqual(calls, ['native', 'ean13'], 'native 失败后走 ean13，成功即停');
+        assert.strictEqual(text, 'X');
+        assert.deepStrictEqual(calls, ['native', 'zxing'], 'native 失败后走 zxing，成功即停');
         resolve();
       } catch (e) { reject(e); }
     }, impl);

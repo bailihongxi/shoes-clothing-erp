@@ -108,3 +108,70 @@ test('decodeRow：单行解码正确', () => {
   const r = ean13.decodeRow(gray, width, height, mid);
   assert.strictEqual(r, '6901234567892');
 });
+
+// ---------- V1.3-4：PARITY 首位奇偶模式回归（修复 5/6/7/9 误读） ----------
+// 历史 bug：PARITY 表 5/6/7/9 四个首位模式的奇偶位写错，导致首位 5/6/7/9 的条码
+// 被误读（实测用户条码 5012345678900 → 1072305678900，且错误码通过校验位）。
+// 本回归用「标准 L/G/R 码表 + 标准 FIRST 奇偶表」独立合成位图（不经 PARITY），
+// 验证解码器对全部 10 个首位数字均解出正确码。
+
+function checksumOf(first12) {
+  let sc = 0;
+  for (let k = 0; k < 12; k++) sc += (k % 2 === 0) ? +first12[k] : +first12[k] * 3;
+  return (10 - (sc % 10)) % 10;
+}
+
+// 独立标准 FIRST 表（L=奇校验 O，G=偶校验 E），与解码器 PARITY 相互独立
+const STD_FIRST = ['OOOOOO', 'OOEOEE', 'OOEEOE', 'OOEEEO', 'OEOOEE', 'OEEOOE', 'OEEEOO', 'OEOEOE', 'OEOEEO', 'OEEOEO'];
+const STD_L = ['0001101', '0011001', '0010011', '0111101', '0100011', '0110001', '0101111', '0111011', '0110111', '0001011'];
+const STD_G = ['0100111', '0110011', '0011011', '0100001', '0011101', '0111001', '0000101', '0010001', '0001001', '0010111'];
+const STD_R = ['1110010', '1100110', '1101100', '1000010', '1011100', '1001110', '1010000', '1000100', '1001000', '1110100'];
+
+function stdBits(code) {
+  const s = String(code);
+  const pattern = STD_FIRST[+s[0]];
+  let bits = '101';
+  for (let i = 0; i < 6; i++) bits += (pattern[i] === 'O' ? STD_L : STD_G)[+s[1 + i]];
+  bits += '01010';
+  for (let i = 0; i < 6; i++) bits += STD_R[+s[7 + i]];
+  return bits + '101';
+}
+
+function stdGray(code, modulePx) {
+  const modules = stdBits(code);
+  const mw = modulePx || 4;
+  const quiet = 20;
+  const w = modules.length * mw + quiet * 2;
+  const h = 48;
+  const gray = new Uint8Array(w * h).fill(255);
+  for (let m = 0; m < modules.length; m++) {
+    if (modules[m] === '1') {
+      for (let px = 0; px < mw; px++) {
+        const x = quiet + m * mw + px;
+        for (let y = 0; y < h; y++) gray[y * w + x] = 0;
+      }
+    }
+  }
+  return { gray, width: w, height: h };
+}
+
+test('PARITY：首位 0-9 全部按标准 FIRST 表正确解码（误读回归）', () => {
+  for (let first = 0; first < 10; first++) {
+    const p12 = String(first) + '1234567890' + '1';
+    const code = p12 + String(checksumOf(p12));
+    const { gray, width, height } = stdGray(code, 4);
+    const r = ean13.decode(gray, width, height);
+    assert.ok(r && r.text === code, `首位 ${first} 应解出 ${code}，got ${r ? r.text : 'null'}`);
+  }
+});
+
+test('PARITY：用户条码 5012345678900 不得误读为 1072305678900（V1.3-3 实测误读回归）', () => {
+  const { gray, width, height } = stdGray('5012345678900', 4);
+  const r = ean13.decode(gray, width, height);
+  assert.ok(r && r.text === '5012345678900', `应解出 5012345678900，got ${r ? r.text : 'null'}`);
+  assert.notStrictEqual(r && r.text, '1072305678900', '不允许输出误读码');
+});
+
+test('PARITY：解码器 PARITY 表与标准 FIRST 表一致（防回退）', () => {
+  assert.deepStrictEqual(ean13.PARITY, STD_FIRST, 'PARITY 表应等于标准首位奇偶表');
+});
