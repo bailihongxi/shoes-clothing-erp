@@ -114,13 +114,18 @@
     return ['code_128', 'ean_13', 'ean_8', 'code_39', 'upc_a', 'upc_e', 'itf', 'qr_code'];
   };
 
-  /** 拍照解码通道优先级：原生 → 自研 EAN-13 → ZXing（仅列出可用的） */
+  /**
+   * 拍照解码通道优先级：原生 BarcodeDetector → ZXing（增强解码）→ 自研 EAN-13。
+   * 顺序说明：V1.3-3 曾将 ean13 放在 zxing 前，但自研解码器对 JPEG 条码照片
+   * 存在误读风险（实测 5012345678900 被误读为 1072305678900 且通过校验位）。
+   * ZXing 增强通道（缩放+白边静区）经真实照片实测稳定解出正确码，故提升到 ean13 前。
+   */
   scan.pickDecoders = function pickDecoders(env) {
     env = env || {};
     var order = [];
     if (env.native) order.push('native');
-    if (env.ean13) order.push('ean13');
     if (env.zxing) order.push('zxing');
+    if (env.ean13) order.push('ean13');
     return order;
   };
 

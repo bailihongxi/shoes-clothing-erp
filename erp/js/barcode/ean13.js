@@ -26,8 +26,12 @@
   var G_BITS = ['0100111', '0110011', '0011011', '0100001', '0011101', '0111001', '0000101', '0010001', '0001001', '0010111'];
   // 右侧（R 码）
   var R_BITS = ['1110010', '1100110', '1101100', '1000010', '1011100', '1001110', '1010000', '1000100', '1001000', '1110100'];
-  // 首位数字 → 左侧 6 位的奇偶模式（O=L，E=G）
-  var PARITY = ['OOOOOO', 'OOEOEE', 'OOEEOE', 'OOEEEO', 'OEOOEE', 'OEOEOE', 'OEEOOE', 'OEEOEO', 'OEOEOO', 'OEEEOO'];
+  // 首位数字 → 左侧 6 位的奇偶模式（O=L 奇校验，E=G 偶校验）
+  // GB/T 12906 标准表：0 LLLLLL / 1 LLGLGG / 2 LLGGLG / 3 LLGGGL / 4 LGLLGG /
+  // 5 LGGLLG / 6 LGGGLL / 7 LGLGLG / 8 LGLGGL / 9 LGGLGL
+  // 历史 bug：5/6/7/9 四个模式的奇偶位写错（如 5 被写成 OEOEOE），
+  // 导致首位 5/6/7/9 的条码被误读（实测 5012345678900 → 1072305678900）。
+  var PARITY = ['OOOOOO', 'OOEOEE', 'OOEEOE', 'OOEEEO', 'OEOOEE', 'OEEOOE', 'OEEEOO', 'OEOEOE', 'OEOEEO', 'OEEOEO'];
 
   /** 7 模块位串 → 4 段游程长度（白,黑,白,黑 或 黑,白,黑,白） */
   function toRuns(bits7) {
