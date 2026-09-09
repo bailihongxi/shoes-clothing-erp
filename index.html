@@ -76,6 +76,8 @@
 
 <!-- ============ 条码渲染/标签/蓝牙打印（界面层依赖 render/label/printBt，须先加载） ============ -->
 <script src="vendor/zxing.min.js" defer></script>
+<!-- 自研 ZXing 解码桥：在官方库上挂 decodeCanvas（Hybrid/Global 双二值化+反色重试），须在 zxing 后加载 -->
+<script src="js/barcode/zxing-bridge.js" defer></script>
 <script src="vendor/xlsx.full.min.js"></script>
 <script src="js/core/excel.js"></script>
 <script src="js/barcode/render.js"></script>
