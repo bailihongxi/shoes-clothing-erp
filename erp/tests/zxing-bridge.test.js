@@ -163,3 +163,95 @@ test('enhanceGray：可定位条码行带并缩放+补白边（纯数据层）',
   assert.ok(en, 'enhanceGray 应产出增强图');
   assert.ok(en.w > g.w && en.h > g.h, '白边应放大画布');
 });
+
+// ---------- V1.3-5：竖排条码支持（旋转 90°/270° 重试） ----------
+/** 把 RGBA 像素数组顺时针旋转 90°（宽高互换） */
+function rotateData90(data, w, h) {
+  const out = new Uint8ClampedArray(data.length);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const so = (y * w + x) * 4;
+      const nx = h - 1 - y, ny = x; // 顺时针 90°：新(x',y') = (h-1-y, x)
+      const do_ = (ny * (h) + nx) * 4;
+      out[do_] = data[so]; out[do_ + 1] = data[so + 1];
+      out[do_ + 2] = data[so + 2]; out[do_ + 3] = data[so + 3];
+    }
+  }
+  return { data: out, w: h, h: w };
+}
+
+/** fake canvas：支持 getImageData/drawImage 旋转（translate+rotate 状态机） */
+function makeFakeCanvas(w, h, data) {
+  const c = { width: w, height: h, _data: data || new Uint8ClampedArray(w * h * 4).fill(255) };
+  c.getContext = function () {
+    let ang = 0;
+    const that = c;
+    return {
+      translate() {},
+      rotate(a) { ang = a; },
+      drawImage(src) {
+        const sw = src.width, sh = src.height;
+        const out = new Uint8ClampedArray(that.width * that.height * 4).fill(255);
+        for (let y = 0; y < sh; y++) {
+          for (let x = 0; x < sw; x++) {
+            const so = (y * sw + x) * 4;
+            let nx, ny;
+            if (ang === Math.PI / 2) { nx = sh - 1 - y; ny = x; }
+            else if (ang === -Math.PI / 2) { nx = y; ny = sw - 1 - x; }
+            else { nx = x; ny = y; }
+            const do_ = (ny * that.width + nx) * 4;
+            out[do_] = src._data[so]; out[do_ + 1] = src._data[so + 1];
+            out[do_ + 2] = src._data[so + 2]; out[do_ + 3] = src._data[so + 3];
+          }
+        }
+        that._data = out;
+      },
+      getImageData() { return { data: that._data, width: that.width, height: that.height }; }
+    };
+  };
+  return c;
+}
+
+test('rotateCanvas：顺时针 90° 尺寸互换且角点像素正确', () => {
+  const savedWindow = global.window;
+  const savedDoc = global.document;
+  global.window = { ZXing: Z };
+  const srcData = new Uint8ClampedArray(4 * 2 * 4).fill(255); // 2 宽 4 高
+  // (0,0) 设为黑（源左上）
+  srcData[0] = srcData[1] = srcData[2] = 0; srcData[3] = 255;
+  const src = makeFakeCanvas(2, 4, srcData);
+  global.document = { createElement: () => makeFakeCanvas(0, 0, null) };
+  try {
+    const rot = bridge.rotateCanvas(src, true);
+    assert.strictEqual(rot.width, 4, '90° 后宽=原高');
+    assert.strictEqual(rot.height, 2, '90° 后高=原宽');
+    // 源 (0,0) → 目标 (h-1-0, 0) = (3, 0)
+    const ctx = rot.getContext('2d');
+    const d = ctx.getImageData(0, 0, 4, 2).data;
+    const o = (0 * 4 + 3) * 4;
+    assert.strictEqual(d[o], 0, '源左上角应映射到目标右上角');
+    const o2 = (0 * 4 + 0) * 4;
+    assert.strictEqual(d[o2], 255, '目标左上应为白（原右下）');
+  } finally {
+    global.window = savedWindow;
+    global.document = savedDoc;
+  }
+});
+
+test('decodeCanvas：竖排条码（横条码旋转 90°）经旋转重试解出（V1.3-5）', () => {
+  const savedWindow = global.window;
+  const savedDoc = global.document;
+  global.window = { ZXing: Z };
+  global.document = { createElement: () => makeFakeCanvas(0, 0, null) };
+  try {
+    const { data, w, h } = photoLikeCanvas('5012345678900', 4);
+    // 竖排条码：把标准横条码旋转 90°，原方向/增强均无法解出（条码竖立）
+    const rot = rotateData90(data, w, h);
+    const canvas = makeFakeCanvas(rot.w, rot.h, rot.data);
+    const r = bridge.decodeCanvas(canvas);
+    assert.strictEqual(r, '5012345678900', '竖排条码经旋转重试应解出，got ' + r);
+  } finally {
+    global.window = savedWindow;
+    global.document = savedDoc;
+  }
+});

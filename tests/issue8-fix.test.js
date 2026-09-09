@@ -40,7 +40,8 @@ components.closeModal = function () { mockModal._closed = true; };
 components.toast = function () {};
 
 // 最小 window / document / navigator，使 hasWindow() 为真
-global.window = { BarcodeDetector: undefined, isSecureContext: true };
+// V1.3-5：ZXing 改为懒加载（start 先 ensureZxing）；测试模拟懒加载已就绪（SW 预缓存后扫码即加载）
+global.window = { BarcodeDetector: undefined, isSecureContext: true, ZXing: { decodeCanvas() {} } };
 global.document = {
   createElement() {
     const input = {

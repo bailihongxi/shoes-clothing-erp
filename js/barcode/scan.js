@@ -168,6 +168,46 @@
     return !!(window.ZXing && typeof window.ZXing.decodeCanvas === 'function');
   }
 
+  /**
+   * UPC-A（12 位纯数字）→ EAN-13（补前导 0），统一 13 位便于建档/匹配（V1.3-5）。
+   * ZXing 对 0 开头的 EAN-13 常返回 12 位 UPC-A 文本；自研 ean13 恒返回 13 位。
+   */
+  scan.normalizeCode = function normalizeCode(text) {
+    var s = String(text || '').trim();
+    if (/^\d{12}$/.test(s)) return '0' + s;
+    return s;
+  };
+
+  /**
+   * 按需加载 vendor/zxing.min.js（约 336KB，V1.3-5 懒加载优化）。
+   * 已就绪 → 立即 cb(true)；加载中 → 轮询等待；未加载 → 动态注入 <script>（SW 预缓存命中极快）。
+   * 任何失败 → cb(false)（扫码主流程仍走 native/ean13，不阻塞）。
+   */
+  scan.ensureZxing = function ensureZxing(cb, timeoutMs) {
+    cb = cb || function () {};
+    if (typeof window === 'undefined' || typeof document === 'undefined') { cb(false); return; }
+    if (window.ZXing && typeof window.ZXing.decodeCanvas === 'function') { cb(true); return; }
+    timeoutMs = timeoutMs || 4000;
+    if (scan.__zxingLoading) {
+      var waited = 0;
+      var iv = setInterval(function () {
+        waited += 50;
+        if (window.ZXing && typeof window.ZXing.decodeCanvas === 'function') {
+          clearInterval(iv); cb(true); return;
+        }
+        if (waited >= timeoutMs) { clearInterval(iv); cb(false); }
+      }, 50);
+      return;
+    }
+    scan.__zxingLoading = true;
+    var s = document.createElement('script');
+    s.src = 'vendor/zxing.min.js';
+    s.async = true;
+    s.onload = function () { scan.__zxingLoading = false; cb(true); };
+    s.onerror = function () { scan.__zxingLoading = false; cb(false); };
+    document.head.appendChild(s);
+  };
+
   /** 原图 → 原始尺寸 canvas（自研 EAN-13 用原图精度，不缩放） */
   function toCanvas(source) {
     try {
@@ -311,6 +351,8 @@
       zxing: env.zxing && env.zxing.available
     });
     if (!order.length) { done(false); return; }
+    // V1.3-5：出口统一规范化（UPC-A 12 位 → EAN-13 13 位）
+    var finalize = function (ok, text) { done(ok, ok ? scan.normalizeCode(text) : text); };
     var i = 0;
     function next() {
       if (i >= order.length) { done(false); return; }
@@ -327,7 +369,7 @@
             if (settled) return;
             settled = true;
             clearTimeout(timer);
-            if (ok) done(true, text);
+            if (ok) finalize(true, text);
             else next();
           });
         } catch (e) {
@@ -339,14 +381,14 @@
       } else if (kind === 'ean13') {
         try {
           env.ean13.decode(source, function (ok, text) {
-            if (ok) done(true, text);
+            if (ok) finalize(true, text);
             else next();
           });
         } catch (e) { next(); }
       } else {
         try {
           env.zxing.decode(source, function (ok, text) {
-            if (ok) done(true, text);
+            if (ok) finalize(true, text);
             else next();
           });
         } catch (e) { next(); }
@@ -374,11 +416,15 @@
   scan.start = function start(opts) {
     opts = opts || {};
     if (!hasWindow()) { if (opts.onError) opts.onError('当前环境不支持扫码'); return; }
-    if (scan.chooseMode(window.BarcodeDetector, window.isSecureContext) === 'realtime') {
-      realtime(opts);
-    } else {
-      manualCard(opts);
-    }
+    // V1.3-5：ZXing 懒加载预热（vendor/zxing.min.js 按需注入，SW 预缓存命中极快；
+    // 加载失败不阻塞——native/ean13 通道兜底）
+    scan.ensureZxing(function () {
+      if (scan.chooseMode(window.BarcodeDetector, window.isSecureContext) === 'realtime') {
+        realtime(opts);
+      } else {
+        manualCard(opts);
+      }
+    });
   };
 
   /** ① 实时扫码（一维条码 + QR 二维码；超时/异常自动抓帧或降级） */

@@ -242,6 +242,8 @@
         ERP.scan.start({
           onResult: function (code) {
             state.form.barcode = String(code || '').trim();
+            // 扫码弹窗关闭后必须重渲染，否则条码已写入 state 但输入框不显示（V1.3-5 修复）
+            if (typeof window !== 'undefined' && window.ERP && ERP.app && ERP.app.render) ERP.app.render();
             ui.toast('已填入吊牌条码：' + state.form.barcode, 'ok');
           },
           onError: function (msg) {
@@ -261,6 +263,8 @@
             var res = ERP.scan.resolve(ctx, code);
             state.keyword = String(code || '');
             state.page = 1;
+            // 扫码后重渲染：搜索框显示条码 + 列表按条码刷新（V1.3-5 修复）
+            if (typeof window !== 'undefined' && window.ERP && ERP.app && ERP.app.render) ERP.app.render();
             if (res && res.found) {
               ui.toast('已定位：' + res.product.styleCode + ' ' + res.product.name);
             } else {

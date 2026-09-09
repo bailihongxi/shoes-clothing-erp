@@ -28,11 +28,14 @@ test('vendor/zxing.min.js 存在且是官方 ZXing 库（可加载、含 Browser
 test('index.html 引用的所有 vendor 脚本文件都存在（防 404 回归）', () => {
   const html = readFile('index.html');
   const refs = [...html.matchAll(/src="vendor\/([^"]+)"/g)].map((m) => m[1]);
-  assert.ok(refs.length >= 2, '应至少引用 zxing 与 xlsx 两个 vendor 文件: ' + refs.join(','));
+  assert.ok(refs.length >= 1, '应至少引用一个 vendor 文件（xlsx）：' + refs.join(','));
   for (const r of refs) {
     assert.ok(fs.existsSync(path.join(ROOT, 'vendor', r)), 'vendor/' + r + ' 必须存在');
   }
-  assert.ok(refs.includes('zxing.min.js'), '应引用 zxing.min.js');
+  // V1.3-5：zxing.min.js 改为扫码时懒加载（scan.js ensureZxing 动态注入），不再静态引用；
+  // 但 vendor 文件本身必须保留（供动态加载 + SW 预缓存）
+  assert.ok(!refs.includes('zxing.min.js'), 'zxing.min.js 应懒加载，不静态引用');
+  assert.ok(fs.existsSync(path.join(ROOT, 'vendor', 'zxing.min.js')), 'vendor/zxing.min.js 文件仍须存在（懒加载源）');
 });
 
 test('sw.js SHELL 包含 zxing.min.js 与 xlsx.full.min.js（离线可加载扫码/导入库）', () => {
