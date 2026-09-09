@@ -274,3 +274,32 @@ test('start：扫码启动前先 ensureZxing 预热，回调后才进入扫码�
     global.document = savedDoc;
   }
 });
+
+test('ensureZxing：onload 后补挂 zxingBridge.install（bridge 先于 zxing 加载场景，V1.3-5）', () => {
+  const savedWindow = global.window;
+  const savedDoc = global.document;
+  let installed = 0;
+  global.window = { ERP: { zxingBridge: { install(Z) { installed++; return Z; } } } };
+  let script = null;
+  global.document = {
+    head: { appendChild(s) { script = s; } },
+    createElement(tag) { return { tagName: tag }; }
+  };
+  try {
+    return new Promise((resolve, reject) => {
+      scan.ensureZxing((ok) => {
+        try {
+          assert.strictEqual(ok, true);
+          assert.strictEqual(installed, 1, 'onload 后应调用 zxingBridge.install 挂载 decodeCanvas');
+          resolve();
+        } catch (e) { reject(e); }
+      });
+      global.window.ZXing = { decodeCanvas() {} };
+      script.onload();
+    });
+  } finally {
+    global.window = savedWindow;
+    global.document = savedDoc;
+    delete scan.__zxingLoading;
+  }
+});

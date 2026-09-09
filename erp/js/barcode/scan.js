@@ -203,7 +203,14 @@
     var s = document.createElement('script');
     s.src = 'vendor/zxing.min.js';
     s.async = true;
-    s.onload = function () { scan.__zxingLoading = false; cb(true); };
+    s.onload = function () {
+      scan.__zxingLoading = false;
+      // V1.3-5：index.html 已不静态加载 zxing（bridge 先加载时未挂载），加载完成需补挂 decodeCanvas
+      if (window.ERP && window.ERP.zxingBridge && typeof window.ERP.zxingBridge.install === 'function') {
+        try { window.ERP.zxingBridge.install(window.ZXing); } catch (e) { /* 忽略挂载失败 */ }
+      }
+      cb(true);
+    };
     s.onerror = function () { scan.__zxingLoading = false; cb(false); };
     document.head.appendChild(s);
   };

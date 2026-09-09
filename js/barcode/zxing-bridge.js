@@ -23,15 +23,23 @@
   'use strict';
 
   var FORMATS = null;
+  // V1.3-5：解码预算（毫秒）。MultiFormatReader 多格式全尝试（尤其 QR 纯 JS 极慢）+
+  // 竖排旋转重试会拖到几十秒；限定预算到期即返回 null（native BarcodeDetector 已覆盖 QR/实时通道）
+  var DECODE_BUDGET_MS = 2500;
+  var budgetStart = 0;
+
+  function budgetLeft() {
+    return DECODE_BUDGET_MS - (Date.now() - budgetStart);
+  }
 
   function buildHints(Z) {
     if (!FORMATS && Z.DecodeHintType && Z.BarcodeFormat) {
+      // 一维商品条码（EAN/UPC/Code128/39/93/ITF）；QR 由 native BarcodeDetector 通道负责
       FORMATS = [
         Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.UPC_A,
         Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_E,
         Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.CODE_39,
-        Z.BarcodeFormat.CODE_93, Z.BarcodeFormat.ITF,
-        Z.BarcodeFormat.QR_CODE
+        Z.BarcodeFormat.CODE_93, Z.BarcodeFormat.ITF
       ];
     }
     // 0.21.x 的 decode(bitmap, hints) 内部按 Map 访问（hints.get），传普通对象会抛错被吞
@@ -106,6 +114,7 @@
 
   /** 直接用灰度数组解码（Hybrid/Global/反色），返回文本或 null */
   function decodeGrayArray(Z, gray, w, h, useGlobal, inverted) {
+    if (budgetLeft() < 120) return null;
     try {
       var GraySource = grayClassOf(Z);
       if (!GraySource) return null;
@@ -175,6 +184,7 @@
     var Z = (typeof window !== 'undefined') ? window.ZXing : null;
     if (!Z || !canvas) return null;
     if (typeof Z.LuminanceSource !== 'function') return null;
+    budgetStart = Date.now();
     // ① 原尺寸（Hybrid → Global）
     var r = decodeCanvasAt(Z, canvas, false, false);
     if (r) return r;
@@ -198,44 +208,33 @@
       r = decodeGrayArray(Z, en.gray, en.w, en.h, true, true);
       if (r) return r;
     }
-    // ⑤ 竖排条码（吊牌/标签竖向印刷常见）：旋转 90°/270° 后重试增强路径（V1.3-5）
+    // ⑤ 竖排条码（吊牌/标签竖向印刷常见）：旋转 90°/270° 后重试（V1.3-5）
     if (typeof document !== 'undefined') {
-      var rot = rotateCanvas(canvas, true);
-      if (rot) {
-        var g2 = canvasGray(rot);
-        if (g2) {
-          var en2 = enhanceGray(g2.gray, g2.w, g2.h, 800);
-          if (en2) {
-            r = decodeGrayArray(Z, en2.gray, en2.w, en2.h, false, false);
-            if (r) return r;
-            r = decodeGrayArray(Z, en2.gray, en2.w, en2.h, true, false);
-            if (r) return r;
-            r = decodeGrayArray(Z, en2.gray, en2.w, en2.h, false, true);
-            if (r) return r;
-            r = decodeGrayArray(Z, en2.gray, en2.w, en2.h, true, true);
-            if (r) return r;
-          }
-        }
-      }
-      var rot2 = rotateCanvas(canvas, false);
-      if (rot2) {
-        var g3 = canvasGray(rot2);
-        if (g3) {
-          var en3 = enhanceGray(g3.gray, g3.w, g3.h, 800);
-          if (en3) {
-            r = decodeGrayArray(Z, en3.gray, en3.w, en3.h, false, false);
-            if (r) return r;
-            r = decodeGrayArray(Z, en3.gray, en3.w, en3.h, true, false);
-            if (r) return r;
-            r = decodeGrayArray(Z, en3.gray, en3.w, en3.h, false, true);
-            if (r) return r;
-            r = decodeGrayArray(Z, en3.gray, en3.w, en3.h, true, true);
-            if (r) return r;
-          }
-        }
-      }
+      r = rotatedDecode(Z, canvas, true);
+      if (r) return r;
+      r = rotatedDecode(Z, canvas, false);
+      if (r) return r;
     }
     return null;
+  }
+
+  /** 旋转后解码（竖排条码）：每次尝试前检查解码预算，超时立即放弃 */
+  function rotatedDecode(Z, canvas, clockwise90) {
+    if (budgetLeft() < 200) return null;
+    var rot = rotateCanvas(canvas, clockwise90);
+    if (!rot) return null;
+    var g2 = canvasGray(rot);
+    if (!g2) return null;
+    var en2 = enhanceGray(g2.gray, g2.w, g2.h, 800);
+    if (!en2) return null;
+    if (budgetLeft() < 200) return null;
+    var r = decodeGrayArray(Z, en2.gray, en2.w, en2.h, false, false);
+    if (r) return r;
+    r = decodeGrayArray(Z, en2.gray, en2.w, en2.h, true, false);
+    if (r) return r;
+    r = decodeGrayArray(Z, en2.gray, en2.w, en2.h, false, true);
+    if (r) return r;
+    return decodeGrayArray(Z, en2.gray, en2.w, en2.h, true, true);
   }
 
   /** 旋转 canvas：clockwise90=true 顺时针 90°，false 逆时针 90°（=顺时针 270°） */
