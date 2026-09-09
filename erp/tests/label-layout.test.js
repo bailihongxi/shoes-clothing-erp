@@ -58,10 +58,12 @@ test('printPage 整页结构：不含店名、含左右分布行', () => {
   assert.strictEqual(count, 2, '两张标签各含一行左右分布');
 });
 
-test('V1.3-8：颜色/号码 与 价格 文字加粗放大更醒目', () => {
+test('V1.3-8/9：颜色/号码文字加大、价格保持醒目、条码下方款号缩小并分隔间距', () => {
   const fs = require('fs');
   const path = require('path');
   const css = fs.readFileSync(path.join(__dirname, '..', 'css', 'print.css'), 'utf8');
-  assert.ok(css.includes('.lb-cs   { font-size: 10.5pt; font-weight: 700;'), '颜色/号码应加粗放大（10.5pt 700）');
-  assert.ok(css.includes('.lb-price{ font-size: 13pt; font-weight: 800;'), '价格应更粗更大（13pt 800）');
+  assert.ok(css.includes('.lb-cs   { font-size: 12pt; font-weight: 700;'), '颜色/号码应加大（12pt 700）');
+  assert.ok(css.includes('.lb-price{ font-size: 13pt; font-weight: 800;'), '价格保持 13pt 800 不变');
+  assert.ok(css.includes('.lb-code { font-size: 7.5pt;'), '条码下方款号文字应缩小（7.5pt）');
+  assert.ok(css.includes('margin-top: 0.8mm'), '款号文字应与条码分隔开一点间距');
 });
