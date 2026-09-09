@@ -60,7 +60,8 @@
       threshold: String((ERP.app && ERP.app.ctx && ERP.app.ctx.settings.defaultThreshold) || 3),
       colors: [],
       sizes: [],
-      styleCode: ''
+      styleCode: '',
+      barcode: ''
     };
   }
 
@@ -203,7 +204,8 @@
           threshold: String(p.threshold === undefined ? ctx.settings.defaultThreshold : p.threshold),
           colors: [],
           sizes: [],
-          styleCode: p.styleCode
+          styleCode: p.styleCode,
+          barcode: p.barcode || ''
         };
       },
 
@@ -229,6 +231,23 @@
       keyword: function (ctx, state, el) {
         state.keyword = el.value;
         state.page = 1;
+      },
+
+      /** 建档表单「📷 扫码」：扫吊牌条码 → 填入条码栏（一码一款） */
+      'scan-form-barcode': function (ctx, state) {
+        if (!ERP.scan || !ERP.scan.start) {
+          ui.toast('当前环境不支持扫码，可手动输入条码', 'err');
+          return;
+        }
+        ERP.scan.start({
+          onResult: function (code) {
+            state.form.barcode = String(code || '').trim();
+            ui.toast('已填入吊牌条码：' + state.form.barcode, 'ok');
+          },
+          onError: function (msg) {
+            if (msg) ui.toast(msg, 'err');
+          }
+        });
       },
 
       /** 搜索框旁扫码按钮：识别 → 命中款号/条码/色码则在列表中定位；未命中提示建档（V3 扫描增强） */
@@ -374,7 +393,8 @@
         salePrice: form.salePrice,
         colors: form.colors,
         sizes: form.sizes,
-        threshold: form.threshold
+        threshold: form.threshold,
+        barcode: form.barcode
       },
       ctx
     );
@@ -570,7 +590,8 @@
         category: form.category,
         colors: form.colors,
         sizes: form.sizes,
-        styleCode: state.editing ? form.styleCode : ''
+        styleCode: state.editing ? form.styleCode : '',
+        barcode: form.barcode
       },
       ctx
     );
@@ -614,6 +635,14 @@
       '<div class="field"><label>预警阈值（件）</label>' +
       '<input class="input" data-input="field" data-name="threshold" inputmode="numeric" value="' + esc(form.threshold) + '"></div>' +
       '</div>';
+    h += (state.editing
+      ? '<div class="field"><label>条码</label>' +
+        '<input class="input" value="' + esc(form.barcode || '') + '" disabled title="吊牌条码建档时确定，如需修改请删除该款重新建档或联系管理员"></div>'
+      : '<div class="field"><label>吊牌条码（选填，可扫码录入）</label><div class="row">' +
+        '<input class="input" data-input="field" data-name="barcode" data-live="1" ' +
+        'placeholder="扫吊牌条码自动填入；留空则系统自动生成" value="' + esc(form.barcode) + '" autocomplete="off">' +
+        '<button class="btn" data-act="scan-form-barcode" title="扫码录入吊牌条码">📷 扫码</button>' +
+        '</div><p class="muted small">扫码后此款全部色码共用该吊牌条码，以后扫该条码即定位此款；已占用条码不可重复使用</p></div>');
 
     if (state.editing) {
       h += '<div class="field"><label>款号（可改，改后需重新打印标签）</label>' +

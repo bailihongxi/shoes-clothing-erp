@@ -193,7 +193,17 @@
         return s.styleCode === styleCode && util.cleanColor(s.color).toUpperCase() === cleanC && s.barcode;
       });
       var colorBarcode;
-      if (existing) {
+      // 吊牌条码（input.barcode）：一码一款——该款全部色码共用吊牌条码，扫码即命中本款
+      var hangTag = util.cleanText(input.barcode || '');
+      if (hangTag) {
+        var htKey = hangTag.toUpperCase();
+        if (taken[htKey]) {
+          errors.push('吊牌条码 ' + hangTag + ' 已被其他款/色码使用，请核对条码或留空自动生成');
+        }
+        colorBarcode = hangTag;
+        taken[htKey] = true;
+        colorBarcodeOf[cleanC] = colorBarcode;
+      } else if (existing) {
         colorBarcode = existing.barcode;
         colorBarcodeOf[cleanC] = colorBarcode;
       } else if (colorBarcodeOf[cleanC]) {
@@ -293,9 +303,11 @@
         brand: util.cleanText(input.brand || ''),
         costPrice: util.parseMoney(input.costPrice),
         salePrice: util.parseMoney(input.salePrice),
-        // 款级代表条码 = 首个颜色的条码（类型+颜色+四位随机码）
+        // 款级代表条码 = 吊牌条码（人工录入）或自动生成（类型+颜色+四位随机码）
         barcode: pv.barcode || pv.styleCode,
-        barcodeSource: schema.BARCODE_SOURCE.SYSTEM,
+        barcodeSource: util.cleanText(input.barcode || '')
+          ? schema.BARCODE_SOURCE.HANGTAG
+          : schema.BARCODE_SOURCE.SYSTEM,
         barcodeAt: now,
         threshold: threshold,
         createdAt: now,

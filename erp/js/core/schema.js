@@ -139,7 +139,7 @@
     PARTNER_TYPES: ['supplier', 'customer'],
 
     /** 条码来源 */
-    BARCODE_SOURCE: { SYSTEM: 'system', SUPPLIER: 'supplier' }
+    BARCODE_SOURCE: { SYSTEM: 'system', SUPPLIER: 'supplier', HANGTAG: 'hangtag' }
   };
 
   /* ---------------- 默认设置 ---------------- */
