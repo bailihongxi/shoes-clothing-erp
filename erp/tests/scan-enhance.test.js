@@ -144,3 +144,133 @@ test('resolve：鞋服扫码定位（款号 / 条码 / 色码）保持不变', (
   r = scan.resolve(ctx, 'NOPE');
   assert.ok(!r.found);
 });
+
+// ---------- V1.3-5：ZXing 懒加载 + UPC-A 规范化 ----------
+test('normalizeCode：12 位 UPC-A 补前导 0 为 13 位 EAN-13，其余原样', () => {
+  assert.strictEqual(scan.normalizeCode('076950450479'), '0076950450479');
+  assert.strictEqual(scan.normalizeCode('5012345678900'), '5012345678900', '13 位不变');
+  assert.strictEqual(scan.normalizeCode('A41611403 01%'), 'A41611403 01%', '含字母不变（Code128）');
+  assert.strictEqual(scan.normalizeCode(''), '');
+});
+
+test('decodeWith：zxing 返回 12 位 UPC-A 时出口统一补 0 为 13 位（V1.3-5 规范化）', () => {
+  return new Promise((resolve, reject) => {
+    const impl = {
+      native: { available: false },
+      ean13: { available: false },
+      zxing: { available: true, decode(src, cb) { cb(true, '076950450479'); } }
+    };
+    scan.decodeWith({ tagName: 'IMG' }, (ok, text) => {
+      try {
+        assert.strictEqual(ok, true);
+        assert.strictEqual(text, '0076950450479', 'UPC-A 应规范化为 13 位 EAN-13');
+        resolve();
+      } catch (e) { reject(e); }
+    }, impl);
+  });
+});
+
+test('ensureZxing：ZXing 已就绪时立即回调且不注入 script', () => {
+  const savedWindow = global.window;
+  const savedDoc = global.document;
+  global.window = { ZXing: { decodeCanvas() {} } };
+  global.document = { createElement() { throw new Error('不应创建 script'); } };
+  try {
+    return new Promise((resolve, reject) => {
+      scan.ensureZxing((ok) => {
+        try {
+          assert.strictEqual(ok, true);
+          assert.strictEqual(scan.__zxingLoading, undefined, '不应有加载标记');
+          resolve();
+        } catch (e) { reject(e); }
+      });
+    });
+  } finally {
+    global.window = savedWindow;
+    global.document = savedDoc;
+  }
+});
+
+test('ensureZxing：未加载时动态注入 script，onload 后回调成功', () => {
+  const savedWindow = global.window;
+  const savedDoc = global.document;
+  global.window = {};
+  let script = null;
+  global.document = {
+    head: { appendChild(s) { script = s; } },
+    createElement(tag) { return { tagName: tag }; }
+  };
+  try {
+    return new Promise((resolve, reject) => {
+      scan.ensureZxing((ok) => {
+        try {
+          assert.strictEqual(ok, true);
+          assert.strictEqual(script.src, 'vendor/zxing.min.js', '应加载 vendor/zxing.min.js');
+          assert.strictEqual(script.async, true);
+          resolve();
+        } catch (e) { reject(e); }
+      });
+      assert.ok(script, '应已注入 script');
+      global.window.ZXing = { decodeCanvas() {} };
+      script.onload();
+    });
+  } finally {
+    delete global.window.ZXing;
+    global.window = savedWindow;
+    global.document = savedDoc;
+    delete scan.__zxingLoading;
+  }
+});
+
+test('ensureZxing：加载失败（onerror）回调失败，不抛错', () => {
+  const savedWindow = global.window;
+  const savedDoc = global.document;
+  global.window = {};
+  let script = null;
+  global.document = {
+    head: { appendChild(s) { script = s; } },
+    createElement(tag) { return { tagName: tag }; }
+  };
+  try {
+    return new Promise((resolve, reject) => {
+      scan.ensureZxing((ok) => {
+        try {
+          assert.strictEqual(ok, false);
+          resolve();
+        } catch (e) { reject(e); }
+      });
+      script.onerror();
+    });
+  } finally {
+    global.window = savedWindow;
+    global.document = savedDoc;
+    delete scan.__zxingLoading;
+  }
+});
+
+test('start：扫码启动前先 ensureZxing 预热，回调后才进入扫码主流程（V1.3-5 懒加载）', () => {
+  const savedWindow = global.window;
+  const savedDoc = global.document;
+  global.document = {};
+  global.window = {};
+  let ensured = false;
+  let flowStarted = false;
+  const savedEnsure = scan.ensureZxing;
+  const savedChoose = scan.chooseMode;
+  scan.ensureZxing = function (cb) {
+    ensured = true;
+    // 模拟加载未完成：不立即回调，验证主流程确实等待预热（加载完成才启动扫码）
+  };
+  scan.chooseMode = function () { flowStarted = true; return 'manual'; };
+  try {
+    scan.start({ onError() {} });
+    assert.strictEqual(ensured, true, 'start 应先调用 ensureZxing 预热');
+    assert.strictEqual(flowStarted, false, 'ensureZxing 未回调前不应进入扫码主流程');
+    assert.strictEqual(scan.__zxingLoading, undefined, 'ensureZxing 内部自行管理加载标记');
+  } finally {
+    scan.ensureZxing = savedEnsure;
+    scan.chooseMode = savedChoose;
+    global.window = savedWindow;
+    global.document = savedDoc;
+  }
+});

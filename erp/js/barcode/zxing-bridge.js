@@ -170,7 +170,7 @@
     return { gray: out, w: cw, h: chh };
   }
 
-  /** 完整解码流水线：原尺寸 → 自动增强 → 反色变体 */
+  /** 完整解码流水线：原尺寸 → 自动增强 → 反色变体 → 竖排条码（旋转90°/270°） */
   function decodeCanvas(canvas) {
     var Z = (typeof window !== 'undefined') ? window.ZXing : null;
     if (!Z || !canvas) return null;
@@ -198,7 +198,65 @@
       r = decodeGrayArray(Z, en.gray, en.w, en.h, true, true);
       if (r) return r;
     }
+    // ⑤ 竖排条码（吊牌/标签竖向印刷常见）：旋转 90°/270° 后重试增强路径（V1.3-5）
+    if (typeof document !== 'undefined') {
+      var rot = rotateCanvas(canvas, true);
+      if (rot) {
+        var g2 = canvasGray(rot);
+        if (g2) {
+          var en2 = enhanceGray(g2.gray, g2.w, g2.h, 800);
+          if (en2) {
+            r = decodeGrayArray(Z, en2.gray, en2.w, en2.h, false, false);
+            if (r) return r;
+            r = decodeGrayArray(Z, en2.gray, en2.w, en2.h, true, false);
+            if (r) return r;
+            r = decodeGrayArray(Z, en2.gray, en2.w, en2.h, false, true);
+            if (r) return r;
+            r = decodeGrayArray(Z, en2.gray, en2.w, en2.h, true, true);
+            if (r) return r;
+          }
+        }
+      }
+      var rot2 = rotateCanvas(canvas, false);
+      if (rot2) {
+        var g3 = canvasGray(rot2);
+        if (g3) {
+          var en3 = enhanceGray(g3.gray, g3.w, g3.h, 800);
+          if (en3) {
+            r = decodeGrayArray(Z, en3.gray, en3.w, en3.h, false, false);
+            if (r) return r;
+            r = decodeGrayArray(Z, en3.gray, en3.w, en3.h, true, false);
+            if (r) return r;
+            r = decodeGrayArray(Z, en3.gray, en3.w, en3.h, false, true);
+            if (r) return r;
+            r = decodeGrayArray(Z, en3.gray, en3.w, en3.h, true, true);
+            if (r) return r;
+          }
+        }
+      }
+    }
     return null;
+  }
+
+  /** 旋转 canvas：clockwise90=true 顺时针 90°，false 逆时针 90°（=顺时针 270°） */
+  function rotateCanvas(canvas, clockwise90) {
+    try {
+      var srcW = canvas.width, srcH = canvas.height;
+      if (!srcW || !srcH) return null;
+      var c = document.createElement('canvas');
+      c.width = srcH; c.height = srcW;
+      var ctx = c.getContext('2d');
+      if (!ctx) return null;
+      if (clockwise90) {
+        ctx.translate(srcH, 0);
+        ctx.rotate(Math.PI / 2);
+      } else {
+        ctx.translate(0, srcW);
+        ctx.rotate(-Math.PI / 2);
+      }
+      ctx.drawImage(canvas, 0, 0);
+      return c;
+    } catch (e) { return null; }
   }
 
   function decodeCanvasAt(Z, canvas, useGlobal, inverted) {
@@ -241,6 +299,7 @@
     // 测试/诊断用内部件
     locateBand: locateBand,
     enhanceGray: enhanceGray,
-    canvasGray: canvasGray
+    canvasGray: canvasGray,
+    rotateCanvas: rotateCanvas
   };
 });
